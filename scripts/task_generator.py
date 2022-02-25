@@ -78,6 +78,20 @@ class TaskGenerator:
         new_centers = centers[to_keep]
         new_radii = radii[to_keep]
         return new_centers, new_radii
+    
+    def select_waypoints(self, centers, radii):
+        """
+        Select waypoints. Currently chooses waypoints associated with num_tasks biggest circles
+        Other options are also valid (eg. radii above mean radii, all radii above some threshold, etc.)
+        Returns num_tasks x 2 matrix of waypoints; may have fewer rows if not enough waypoints overall
+        """
+        waypoints = np.hstack((centers, np.expand_dims(radii,1))).astype(int)
+        sorted_waypoints = waypoints[np.argsort(-waypoints[:, 2])]
+        if(sorted_waypoints.shape[0] < self._num_tasks):
+            num_ele = sorted_waypoints.shape[0]
+        else:
+            num_ele = self._num_tasks
+        return sorted_waypoints[0:num_ele, 0:2]
             
     
     def visualize_pts(self, pts):
@@ -103,6 +117,7 @@ class TaskGenerator:
             circle = self._maxcircle.compute_circle(center, radius)
             plt.scatter(center[0], center[1])
             plt.scatter(circle[:,0], circle[:,1])
+    
 
 
 if __name__ == "__main__":
@@ -144,4 +159,8 @@ if __name__ == "__main__":
     # taskgen.visualize_circles(test_new_centers, test_new_radii)
     # plt.title("remove_overlaps test")
     # plt.show()
-    print('nop')
+
+    # # Test select_waypoints
+    test_waypoints = taskgen.select_waypoints(test_new_centers, test_new_radii)
+    taskgen.visualize_pts(test_waypoints)
+    plt.show()
