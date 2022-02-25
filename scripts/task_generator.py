@@ -45,16 +45,30 @@ class TaskGenerator:
             max_radius_array[i] = self._maxcircle.max_radius(pts[i])
         return max_radius_array
     
-    def visualize(self, pts):
+    def visualize_pts(self, pts):
         """
         Visualize map and given points
         """
         # Plot map
         xx,yy = np.meshgrid(np.arange(self._map.shape[0]), np.arange(self._map.shape[1]))
-        mask = test_map[xx,yy] > 0.5
+        mask = self._map[xx,yy] > 0.5
         plt.scatter(xx[mask],yy[mask])
         # Plot pts
         plt.scatter(pts[:,0], pts[:,1])
+    
+    def visualize_circles(self, centers, radii):
+        # Plot map
+        xx,yy = np.meshgrid(np.arange(self._map.shape[0]), np.arange(self._map.shape[1]))
+        mask = self._map[xx,yy] > 0.5
+        plt.scatter(xx[mask],yy[mask])
+        # Plot circles
+        for i in range(0, centers.shape[0]):
+            center = centers[i,:]
+            radius = radii[i]
+            circle = self._maxcircle.compute_circle(center, radius)
+            plt.scatter(center[0], center[1])
+            plt.scatter(circle[:,0], circle[:,1])
+
 
 if __name__ == "__main__":
     # # Generate map; map uses (x,y) not (row,col)
@@ -80,12 +94,12 @@ if __name__ == "__main__":
     
     # # Test generate_random_points
     test_pts = taskgen.generate_random_points(100)
-    taskgen.visualize(test_pts)
-    plt.title("generate_random_points")
+    taskgen.visualize_pts(test_pts)
+    plt.title("generate_random_points test")
     plt.show()
 
     # # Test max_circle_pts
     test_max_r_array = taskgen.max_circle_pts(test_pts)
-    for i in range(0,100):
-        taskgen._maxcircle.visualize(test_pts[i,:], taskgen._maxcircle.compute_circle(test_pts[i,:], test_max_r_array[i]))
+    taskgen.visualize_circles(test_pts, test_max_r_array)
+    plt.title("max_cricle_pts test")
     plt.show()
