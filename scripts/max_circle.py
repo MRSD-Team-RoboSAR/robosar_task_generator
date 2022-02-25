@@ -26,11 +26,18 @@ class MaxCircle:
         y_coord = circle_center[1] + radius * np.cos(angle_rad)
         tortn = np.hstack((np.expand_dims(x_coord, 1),np.expand_dims(y_coord, 1))).astype(int)
         return tortn
+    
+    def visualize(self, center, circle):
+        # Visualize circle center and circumference
+        plt.scatter(center[0], center[1])
+        plt.scatter(circle[:,0], circle[:,1])
 
 if __name__ == "__main__":
     maxcircle = MaxCircle(None)
     test_center = np.array([0,0])
     test_circle = maxcircle.compute_circle(test_center, 20)
-    plt.scatter(test_circle[:,0], test_circle[:,1])
+    
+    maxcircle.visualize(test_center, test_circle)
+    plt.grid()
     plt.title("compute_circle test")
     plt.show()
