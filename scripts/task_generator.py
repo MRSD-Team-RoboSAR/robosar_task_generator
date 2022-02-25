@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import skimage.filters
 
 import max_circle
 
@@ -15,7 +16,6 @@ class TaskGenerator:
         resolution is number of points used for collision detection
         """
         self._map = map
-        self._num_tasks = num_tasks
         self._num_samples = num_samples
         self._threshold = threshold
         self._maxcircle = max_circle.MaxCircle(map, threshold, resolution)
@@ -61,7 +61,7 @@ class TaskGenerator:
             other_idx = np.delete(np.arange(0,centers.shape[0]), i)
             # Can eliminiate candidates that are further than radius in x or y directions
             candidates_mask_x = np.logical_and(other_centers[:,0] > (cur_center[0]-cur_radius), other_centers[:,0] < (cur_center[0]+cur_radius))
-            candidates_mask_y = np.logical_and(other_centers[:,0] > (cur_center[0]-cur_radius), other_centers[:,0] < (cur_center[0]+cur_radius))
+            candidates_mask_y = np.logical_and(other_centers[:,1] > (cur_center[1]-cur_radius), other_centers[:,1] < (cur_center[1]+cur_radius))
             candidates_mask = np.logical_and(candidates_mask_x, candidates_mask_y)
             candidates = other_centers[candidates_mask]
             candidates_radii = other_radii[candidates_mask]
@@ -82,17 +82,14 @@ class TaskGenerator:
     
     def select_waypoints(self, centers, radii):
         """
-        Select waypoints. Currently chooses waypoints associated with num_tasks biggest circles
+        Select waypoints. Uses Otsu thresholding to keep interesting waypoints
         Other options are also valid (eg. radii above mean radii, all radii above some threshold, etc.)
-        Returns num_tasks x 3 matrix of waypoints and their associated radii; may have fewer rows if not enough waypoints overall
+        Returns M x 3 matrix of waypoints and their associated radii
         """
         waypoints = np.hstack((centers, np.expand_dims(radii,1))).astype(int)
-        sorted_waypoints = waypoints[np.argsort(-waypoints[:, 2])]
-        if(sorted_waypoints.shape[0] < self._num_tasks):
-            num_ele = sorted_waypoints.shape[0]
-        else:
-            num_ele = self._num_tasks
-        return sorted_waypoints[0:num_ele]
+        otsu_threshold = skimage.filters.threshold_otsu(waypoints[:,2])
+        otsu_mask = waypoints[:,2] >= otsu_threshold
+        return waypoints[otsu_mask]
     
     def generate_tasks(self, num_iter):
         """
