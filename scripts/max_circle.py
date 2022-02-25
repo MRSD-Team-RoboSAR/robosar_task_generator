@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from sklearn.utils import check_consistent_length
 
 class MaxCircle:
     """
@@ -30,8 +31,8 @@ class MaxCircle:
         # Compute x coordinates of points
         x_coord = circle_center[0] + radius * np.sin(angle_rad)
         y_coord = circle_center[1] + radius * np.cos(angle_rad)
-        tortn = np.hstack((np.expand_dims(x_coord, 1),np.expand_dims(y_coord, 1))).astype(int)
-        return tortn
+        circle = np.hstack((np.expand_dims(x_coord, 1),np.expand_dims(y_coord, 1))).astype(int)
+        return circle
     
     def visualize(self, center, circle):
         """
@@ -57,6 +58,17 @@ class MaxCircle:
             return True
         map_vals = self._map[pts[:,0],pts[:,1]]
         return np.any(map_vals > self._threshold)
+    
+    def max_radius(self, center):
+        """
+        Get maximum allowable radius without collisions
+        """
+        cur_radius = 0
+        quit = False
+        while(quit == False):
+            cur_radius += 1
+            quit = self.check_collision(center, self.compute_circle(center, cur_radius))
+        return cur_radius - 1
 
 if __name__ == "__main__":
     # # Generate map; map uses (x,y) not (row,col)
@@ -94,6 +106,13 @@ if __name__ == "__main__":
         print("Collision has occurred!")
     else:
         print("No collision")
-    maxcircle.visualize(test_center, test_circle)
-    plt.title("check_collision test")
-    plt.show()
+    # maxcircle.visualize(test_center, test_circle)
+    # plt.title("check_collision test")
+    # plt.show()
+
+    # # Test max_radius
+    test_max_radius = maxcircle.max_radius(test_center)
+    maxcircle.visualize(test_center, maxcircle.compute_circle(test_center, test_max_radius))
+    print("Maximum radius: ", test_max_radius)
+    # plt.title("max_radius test")
+    # plt.show()
