@@ -51,12 +51,12 @@ class MaxCircle:
         Returns True if collision occurs
         """
         pts = np.vstack((np.expand_dims(center,0),circle))
-        if((np.max(pts[:,0]) > self._map.shape[0]) or (np.max(pts[:,1]) > self._map.shape[1]) or (np.min(pts[:,0]) < 0) or (np.min(pts[:,1]) > 0)):
+        if((np.max(pts[:,0]) > self._map.shape[0]) or (np.max(pts[:,1]) > self._map.shape[1]) or (np.min(pts[:,0]) < 0) or (np.min(pts[:,1]) < 0)):
             # Out of bounds; consider this a collision
-            print("Out of bounds!!!")
+            print("WARN: Circle is out of bounds")
             return True
-        # map_vals = 
-        return False
+        map_vals = self._map[pts[:,0],pts[:,1]]
+        return np.any(map_vals > self._threshold)
 
 if __name__ == "__main__":
     # # Generate map; map uses (x,y) not (row,col)
@@ -72,20 +72,21 @@ if __name__ == "__main__":
     test_map[[125,175], 175:225] = 1
     test_map[[125,175], 275:325] = 1
     # Plot map
-    plt.imshow(test_map.T, cmap="Greys")
-    plt.title("Test map")
-    plt.show()
+    # plt.imshow(test_map.T, cmap="Greys")
+    # plt.title("Test map")
+    # plt.show()
 
     # # Constructor
     test_num_tasks = 8
     maxcircle = MaxCircle(test_map, test_num_tasks)
     
     # # Test compute_circle
-    test_center = np.array([400,0])
+    # test_center = np.array([0,0])
+    test_center = np.array([62,50])
     test_circle = maxcircle.compute_circle(test_center, 20)
-    maxcircle.visualize(test_center, test_circle)
-    plt.title("compute_circle test")
-    plt.show()
+    # maxcircle.visualize(test_center, test_circle)
+    # plt.title("compute_circle test")
+    # plt.show()
 
     # # Test check_collision
     test_collision = maxcircle.check_collision(test_center, test_circle)
