@@ -38,7 +38,7 @@ class MaxCircle:
         """
         # Plot map
         xx,yy = np.meshgrid(np.arange(self._map.shape[0]), np.arange(self._map.shape[1]))
-        mask = test_map[xx,yy] > 0.5
+        mask = self._map[xx,yy] > 0.5
         plt.scatter(xx[mask],yy[mask])
         # Plot circle
         plt.scatter(center[0], center[1])
