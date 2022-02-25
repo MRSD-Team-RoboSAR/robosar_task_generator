@@ -105,15 +105,14 @@ class TaskGenerator:
             centers = self.generate_random_points(self._num_samples)
             # Compute maximum radius for each point
             radii = self.max_circle_pts(centers)
-            # Remove overlaps
-            centers, radii = self.remove_overlaps(centers, radii)
-            # Combine current and past waypoints
-            cur_waypoints = np.hstack((centers, np.expand_dims(radii, 1)))
+            # Remove overlaps, current and past
             if(i == 0):
-                # First time
-                waypoints = cur_waypoints
+                # First time; just remove overlaps
+                centers, radii = self.remove_overlaps(centers, radii)
+                waypoints = np.hstack((centers, np.expand_dims(radii,1)))
             else:
                 # Append and remove overlaps
+                cur_waypoints = np.hstack((centers, np.expand_dims(radii,1)))
                 waypoints = np.vstack((waypoints, cur_waypoints))
                 centers, radii = self.remove_overlaps(waypoints[:,0:2], waypoints[:,2])
                 waypoints = np.hstack((centers, np.expand_dims(radii, 1)))
