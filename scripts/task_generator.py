@@ -71,9 +71,9 @@ class TaskGenerator:
             confirmed = candidates[confirmed_mask]
             confirmed_radii = candidates_radii[confirmed_mask]
             confirmed_idx = candidates_idx[confirmed_mask]
-            # Flag for deletion
-            if(np.all(cur_radius > confirmed_radii)):
-                to_delete[confirmed_idx] = True
+            # Flag smaller or equal circles for deletion
+            smaller_mask = confirmed_radii <= cur_radius
+            to_delete[confirmed_idx[smaller_mask]] = True
         to_keep = np.logical_not(to_delete)
         new_centers = centers[to_keep]
         new_radii = radii[to_keep]
@@ -135,12 +135,13 @@ if __name__ == "__main__":
 
     # # Test max_circle_pts
     test_max_r_array = taskgen.max_circle_pts(test_pts)
-    taskgen.visualize_circles(test_pts, test_max_r_array)
-    plt.title("max_cricle_pts test")
-    plt.show()
+    # taskgen.visualize_circles(test_pts, test_max_r_array)
+    # plt.title("max_cricle_pts test")
+    # plt.show()
 
     # # Test remove_overlaps
     test_new_centers, test_new_radii = taskgen.remove_overlaps(test_pts, test_max_r_array)
-    taskgen.visualize_circles(test_new_centers, test_new_radii)
-    plt.title("remove_overlaps test")
-    plt.show()
+    # taskgen.visualize_circles(test_new_centers, test_new_radii)
+    # plt.title("remove_overlaps test")
+    # plt.show()
+    print('nop')
