@@ -5,11 +5,13 @@ class MaxCircle:
     """
     Finds maximum circle centered about point in given map
     """
-    def __init__(self, map, threshold = 0.5, resolution=8):
-        # Map is 2D matrix of occupancy grid map
+    def __init__(self, map, num_tasks, threshold = 0.5, resolution=8):
+        # Map is 2D matrix of occupancy grid map in (x,y), not (row,col)
+        # num_tasks is number of tasks to allocate in map
         # Threshold determines whether space is occupied or not
         # Resolution is number of points used to represent circle at 1 cell length
         self._map = map
+        self._num_tasks = num_tasks
         self._threshold = threshold
         self._resolution = resolution
     
@@ -29,15 +31,40 @@ class MaxCircle:
     
     def visualize(self, center, circle):
         # Visualize circle center and circumference
+        plt.imshow(self._map, cmap="Greys")
         plt.scatter(center[0], center[1])
         plt.scatter(circle[:,0], circle[:,1])
+    
+    def check_collision(self, circle):
+        # Check circle against map for collisions (above threshold)
+        print("poop")
 
 if __name__ == "__main__":
-    maxcircle = MaxCircle(None)
+    # # Generate map; map uses (x,y) not (row,col)
+    test_map = np.zeros((300, 400))
+    # Boundaries
+    test_map[[0,-1],:] = 1
+    test_map[:,[0,-1]] = 1
+    # Horizontal walls
+    test_map[0:125, [100,200,300]] = 1
+    test_map[175:, [100,200,300]] = 1
+    # Vertical walls
+    test_map[[125,175], 75:125] = 1
+    test_map[[125,175], 175:225] = 1
+    test_map[[125,175], 275:325] = 1
+    # plt.imshow(test_map.T, cmap="Greys")
+    # plt.title("Test map")
+    # plt.show()
+
+    # # Constructor
+    test_num_tasks = 8
+    maxcircle = MaxCircle(test_map, test_num_tasks)
+    
+    # # Test compute_circle
     test_center = np.array([0,0])
     test_circle = maxcircle.compute_circle(test_center, 20)
-    
     maxcircle.visualize(test_center, test_circle)
-    plt.grid()
     plt.title("compute_circle test")
     plt.show()
+
+    # # Test Interference
