@@ -7,7 +7,7 @@ class TaskGenerator:
     """
     Generates tasks for a given map
     """
-    def __init__(self, map, num_tasks, threshold = 0.5, resolution=8):
+    def __init__(self, map, num_tasks, threshold = 0.5, resolution=8, num_samples = 100):
         """
         map is 2D matrix of occupancy grid map in (x,y), not (row,col)
         num_tasks is number of tasks to allocate in map
@@ -16,6 +16,7 @@ class TaskGenerator:
         """
         self._map = map
         self._num_tasks = num_tasks
+        self._num_samples = num_samples
         self._threshold = threshold
         self._maxcircle = max_circle.MaxCircle(map, threshold, resolution)
     
@@ -83,7 +84,7 @@ class TaskGenerator:
         """
         Select waypoints. Currently chooses waypoints associated with num_tasks biggest circles
         Other options are also valid (eg. radii above mean radii, all radii above some threshold, etc.)
-        Returns num_tasks x 2 matrix of waypoints; may have fewer rows if not enough waypoints overall
+        Returns num_tasks x 3 matrix of waypoints and their associated radii; may have fewer rows if not enough waypoints overall
         """
         waypoints = np.hstack((centers, np.expand_dims(radii,1))).astype(int)
         sorted_waypoints = waypoints[np.argsort(-waypoints[:, 2])]
@@ -91,7 +92,36 @@ class TaskGenerator:
             num_ele = sorted_waypoints.shape[0]
         else:
             num_ele = self._num_tasks
-        return sorted_waypoints[0:num_ele, 0:2]
+        return sorted_waypoints[0:num_ele]
+    
+    def generate_tasks(self, num_iter):
+        """
+        Generate waypoints for a given map
+        num_iter determines number of iterations
+        Returns waypoints of final iteration
+        """
+        for i in range(0, num_iter):
+            # Generate random points
+            centers = self.generate_random_points(self._num_samples)
+            # Compute maximum radius for each point
+            radii = self.max_circle_pts(centers)
+            # Remove overlaps
+            centers, radii = self.remove_overlaps(centers, radii)
+            # Combine current and past waypoints
+            cur_waypoints = np.hstack((centers, np.expand_dims(radii, 1)))
+            if(i == 0):
+                # First time
+                waypoints = cur_waypoints
+            else:
+                # Append and remove overlaps
+                waypoints = np.vstack((waypoints, cur_waypoints))
+                centers, radii = self.remove_overlaps(waypoints[:,0:2], waypoints[:,2])
+                waypoints = np.hstack((centers, np.expand_dims(radii, 1)))
+            # Select waypoints
+            waypoints = self.select_waypoints(waypoints[:,0:2],waypoints[:,2])
+            print("Finished ", i, "...")
+        self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+        plt.show()
             
     
     def visualize_pts(self, pts):
@@ -139,11 +169,11 @@ if __name__ == "__main__":
     # plt.show()
 
     # # Constructor
-    test_num_tasks = 8
+    test_num_tasks = 20
     taskgen = TaskGenerator(test_map, test_num_tasks)
     
     # # Test generate_random_points
-    test_pts = taskgen.generate_random_points(100)
+    test_pts = taskgen.generate_random_points(1000)
     # taskgen.visualize_pts(test_pts)
     # plt.title("generate_random_points test")
     # plt.show()
@@ -162,5 +192,8 @@ if __name__ == "__main__":
 
     # # Test select_waypoints
     test_waypoints = taskgen.select_waypoints(test_new_centers, test_new_radii)
-    taskgen.visualize_pts(test_waypoints)
-    plt.show()
+    # taskgen.visualize_pts(test_waypoints)
+    # plt.show()
+
+    # # Test generate_tasks
+    taskgen.generate_tasks(40)
