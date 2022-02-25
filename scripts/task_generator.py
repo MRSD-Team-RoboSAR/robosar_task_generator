@@ -45,6 +45,41 @@ class TaskGenerator:
             max_radius_array[i] = self._maxcircle.max_radius(pts[i])
         return max_radius_array
     
+    def remove_overlaps(self, centers, radii):
+        """
+        Find and remove centers that are included in other circles
+        Circle with larger radius have priority
+        Returns centers and radii without overlap
+        """
+        to_delete = np.zeros((centers.shape[0],)).astype(bool)
+        for i in range(0,centers.shape[0]):
+            cur_center = centers[i]
+            cur_radius = radii[i]
+            other_centers = np.delete(np.copy(centers), i, axis=0)
+            other_radii = np.delete(np.copy(radii), i)
+            other_idx = np.delete(np.arange(0,centers.shape[0]), i)
+            # Can eliminiate candidates that are further than radius in x or y directions
+            candidates_mask_x = np.logical_and(other_centers[:,0] > (cur_center[0]-cur_radius), other_centers[:,0] < (cur_center[0]+cur_radius))
+            candidates_mask_y = np.logical_and(other_centers[:,0] > (cur_center[0]-cur_radius), other_centers[:,0] < (cur_center[0]+cur_radius))
+            candidates_mask = np.logical_and(candidates_mask_x, candidates_mask_y)
+            candidates = other_centers[candidates_mask]
+            candidates_radii = other_radii[candidates_mask]
+            candidates_idx = other_idx[candidates_mask]
+            # Check if candidates are within cur_circle
+            candidate_dists = np.linalg.norm(cur_center-candidates,axis=1)
+            confirmed_mask = candidate_dists < cur_radius
+            confirmed = candidates[confirmed_mask]
+            confirmed_radii = candidates_radii[confirmed_mask]
+            confirmed_idx = candidates_idx[confirmed_mask]
+            # Flag for deletion
+            if(np.all(cur_radius > confirmed_radii)):
+                to_delete[confirmed_idx] = True
+        to_keep = np.logical_not(to_delete)
+        new_centers = centers[to_keep]
+        new_radii = radii[to_keep]
+        return new_centers, new_radii
+            
+    
     def visualize_pts(self, pts):
         """
         Visualize map and given points
@@ -94,12 +129,18 @@ if __name__ == "__main__":
     
     # # Test generate_random_points
     test_pts = taskgen.generate_random_points(100)
-    taskgen.visualize_pts(test_pts)
-    plt.title("generate_random_points test")
-    plt.show()
+    # taskgen.visualize_pts(test_pts)
+    # plt.title("generate_random_points test")
+    # plt.show()
 
     # # Test max_circle_pts
     test_max_r_array = taskgen.max_circle_pts(test_pts)
     taskgen.visualize_circles(test_pts, test_max_r_array)
     plt.title("max_cricle_pts test")
+    plt.show()
+
+    # # Test remove_overlaps
+    test_new_centers, test_new_radii = taskgen.remove_overlaps(test_pts, test_max_r_array)
+    taskgen.visualize_circles(test_new_centers, test_new_radii)
+    plt.title("remove_overlaps test")
     plt.show()
