@@ -5,7 +5,7 @@ class MaxCircle:
     """
     Finds maximum circle centered about point in given map
     """
-    def __init__(self, map, num_tasks, threshold = 0.5, resolution=8):
+    def __init__(self, map, threshold = 0.5, resolution=8):
         """
         Map is 2D matrix of occupancy grid map in (x,y), not (row,col)
         num_tasks is number of tasks to allocate in map
@@ -13,7 +13,6 @@ class MaxCircle:
         Resolution is number of points used to represent circle at 1 cell length
         """
         self._map = map
-        self._num_tasks = num_tasks
         self._threshold = threshold
         self._resolution = resolution
     
@@ -83,21 +82,20 @@ if __name__ == "__main__":
     test_map[[125,175], 175:225] = 1
     test_map[[125,175], 275:325] = 1
     # Plot map
-    # plt.imshow(test_map.T, cmap="Greys")
-    # plt.title("Test map")
-    # plt.show()
+    plt.imshow(test_map.T, cmap="Greys")
+    plt.title("Test map")
+    plt.show()
 
     # # Constructor
-    test_num_tasks = 8
-    maxcircle = MaxCircle(test_map, test_num_tasks)
+    maxcircle = MaxCircle(test_map)
     
     # # Test compute_circle
     # test_center = np.array([0,0])
     test_center = np.array([62,50])
     test_circle = maxcircle.compute_circle(test_center, 20)
-    # maxcircle.visualize(test_center, test_circle)
-    # plt.title("compute_circle test")
-    # plt.show()
+    maxcircle.visualize(test_center, test_circle)
+    plt.title("compute_circle test")
+    plt.show()
 
     # # Test check_collision
     test_collision = maxcircle.check_collision(test_center, test_circle)
@@ -105,13 +103,13 @@ if __name__ == "__main__":
         print("Collision has occurred!")
     else:
         print("No collision")
-    # maxcircle.visualize(test_center, test_circle)
-    # plt.title("check_collision test")
-    # plt.show()
+    maxcircle.visualize(test_center, test_circle)
+    plt.title("check_collision test")
+    plt.show()
 
     # # Test max_radius
     test_max_radius = maxcircle.max_radius(test_center)
     maxcircle.visualize(test_center, maxcircle.compute_circle(test_center, test_max_radius))
     print("Maximum radius: ", test_max_radius)
-    # plt.title("max_radius test")
-    # plt.show()
+    plt.title("max_radius test")
+    plt.show()
