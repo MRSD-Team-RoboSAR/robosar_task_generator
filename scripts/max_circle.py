@@ -14,10 +14,23 @@ class MaxCircle:
         self._resolution = resolution
     
     def compute_circle(self, center, radius):
-        # Compute circle of given radius with given center
-        # Returns list of points presenting circle
-        print("WIP")
+        # Compute circle of given radius with given center; all inputs and outputs in cells
+        # center is 1x2 matrix in cells
+        # radius is scalar given in cells
+        # Returns Mx2 matrix (x,y) of points presenting circle, in cells
+        circle_center = center.astype(int)
+        circle_res = np.ceil(self._resolution * radius) # Make resolution scale with radius
+        angle_rad = np.arange(0, circle_res)*(2*np.pi/circle_res)
+        # Compute x coordinates of points
+        x_coord = circle_center[0] + radius * np.sin(angle_rad)
+        y_coord = circle_center[1] + radius * np.cos(angle_rad)
+        tortn = np.hstack((np.expand_dims(x_coord, 1),np.expand_dims(y_coord, 1))).astype(int)
+        return tortn
 
 if __name__ == "__main__":
     maxcircle = MaxCircle(None)
-    maxcircle.compute_circle(None, None)
+    test_center = np.array([0,0])
+    test_circle = maxcircle.compute_circle(test_center, 20)
+    plt.scatter(test_circle[:,0], test_circle[:,1])
+    plt.title("compute_circle test")
+    plt.show()
