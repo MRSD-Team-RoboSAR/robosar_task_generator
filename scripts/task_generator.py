@@ -111,13 +111,29 @@ class TaskGenerator:
                 # Append and remove overlaps
                 cur_waypoints = np.hstack((centers, np.expand_dims(radii,1)))
                 waypoints = np.vstack((waypoints, cur_waypoints))
+
+                self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+                plt.title("Before remove_overlaps")
+                plt.show()
+
                 centers, radii = self.remove_overlaps(waypoints[:,0:2], waypoints[:,2])
                 waypoints = np.hstack((centers, np.expand_dims(radii, 1)))
+
+                self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+                plt.title("After remove_overlaps")
+                plt.show()
+
             # Select waypoints
+            self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+            plt.title("Before select_waypoints")
+            plt.show()
+
             waypoints = self.select_waypoints(waypoints[:,0:2],waypoints[:,2])
             print("Finished ", i, "...")
-        self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-        plt.show()
+            
+            self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+            plt.title("After select_waypoints")
+            plt.show()
             
     
     def visualize_pts(self, pts):
@@ -135,14 +151,15 @@ class TaskGenerator:
         # Plot map
         xx,yy = np.meshgrid(np.arange(self._map.shape[0]), np.arange(self._map.shape[1]))
         mask = self._map[xx,yy] > 0.5
-        plt.scatter(xx[mask],yy[mask])
+        plt.scatter(xx[mask],yy[mask], c='k', s=1)
         # Plot circles
         for i in range(0, centers.shape[0]):
             center = centers[i,:]
             radius = radii[i]
             circle = self._maxcircle.compute_circle(center, radius)
-            plt.scatter(center[0], center[1])
-            plt.scatter(circle[:,0], circle[:,1])
+            x_plt = np.append(circle[:,0],center[0])
+            y_plt = np.append(circle[:,1],center[1])
+            plt.scatter(x_plt, y_plt, s = 1)
     
 
 
@@ -168,28 +185,28 @@ if __name__ == "__main__":
     test_num_tasks = 20
     taskgen = TaskGenerator(test_map, test_num_tasks)
     
-    # # Test generate_random_points
-    test_pts = taskgen.generate_random_points(1000)
-    # taskgen.visualize_pts(test_pts)
-    # plt.title("generate_random_points test")
-    # plt.show()
+    # # # Test generate_random_points
+    # test_pts = taskgen.generate_random_points(1000)
+    # # taskgen.visualize_pts(test_pts)
+    # # plt.title("generate_random_points test")
+    # # plt.show()
 
-    # # Test max_circle_pts
-    test_max_r_array = taskgen.max_circle_pts(test_pts)
-    # taskgen.visualize_circles(test_pts, test_max_r_array)
-    # plt.title("max_cricle_pts test")
-    # plt.show()
+    # # # Test max_circle_pts
+    # test_max_r_array = taskgen.max_circle_pts(test_pts)
+    # # taskgen.visualize_circles(test_pts, test_max_r_array)
+    # # plt.title("max_cricle_pts test")
+    # # plt.show()
 
-    # # Test remove_overlaps
-    test_new_centers, test_new_radii = taskgen.remove_overlaps(test_pts, test_max_r_array)
-    # taskgen.visualize_circles(test_new_centers, test_new_radii)
-    # plt.title("remove_overlaps test")
-    # plt.show()
+    # # # Test remove_overlaps
+    # test_new_centers, test_new_radii = taskgen.remove_overlaps(test_pts, test_max_r_array)
+    # # taskgen.visualize_circles(test_new_centers, test_new_radii)
+    # # plt.title("remove_overlaps test")
+    # # plt.show()
 
-    # # Test select_waypoints
-    test_waypoints = taskgen.select_waypoints(test_new_centers, test_new_radii)
-    # taskgen.visualize_pts(test_waypoints)
-    # plt.show()
+    # # # Test select_waypoints
+    # test_waypoints = taskgen.select_waypoints(test_new_centers, test_new_radii)
+    # # taskgen.visualize_pts(test_waypoints)
+    # # plt.show()
 
     # # Test generate_tasks
     taskgen.generate_tasks(40)
