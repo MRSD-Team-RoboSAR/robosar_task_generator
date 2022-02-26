@@ -8,7 +8,7 @@ class TaskGenerator:
     """
     Generates tasks for a given map
     """
-    def __init__(self, map, num_tasks, threshold = 0.5, resolution=8, num_samples = 100):
+    def __init__(self, map, threshold = 0.5, resolution=8, num_samples = 100):
         """
         map is 2D matrix of occupancy grid map in (x,y), not (row,col)
         num_tasks is number of tasks to allocate in map
@@ -72,9 +72,10 @@ class TaskGenerator:
             confirmed = candidates[confirmed_mask]
             confirmed_radii = candidates_radii[confirmed_mask]
             confirmed_idx = candidates_idx[confirmed_mask]
-            # Flag smaller or equal circles for deletion
-            smaller_mask = confirmed_radii <= cur_radius
-            to_delete[confirmed_idx[smaller_mask]] = True
+            # Flag smaller circles for deletion
+            smaller_mask = confirmed_radii < cur_radius
+            to_delete_mask = confirmed_idx[smaller_mask]
+            to_delete[to_delete_mask] = True
         to_keep = np.logical_not(to_delete)
         new_centers = centers[to_keep]
         new_radii = radii[to_keep]
@@ -99,7 +100,10 @@ class TaskGenerator:
         """
         for i in range(0, num_iter):
             # Generate random points
-            centers = self.generate_random_points(self._num_samples)
+            if i == 0:
+                centers = self.generate_random_points(100)
+            else:
+                centers = self.generate_random_points(100)
             # Compute maximum radius for each point
             radii = self.max_circle_pts(centers)
             # Remove overlaps, current and past
@@ -111,29 +115,13 @@ class TaskGenerator:
                 # Append and remove overlaps
                 cur_waypoints = np.hstack((centers, np.expand_dims(radii,1)))
                 waypoints = np.vstack((waypoints, cur_waypoints))
-
-                self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-                plt.title("Before remove_overlaps")
-                plt.show()
-
                 centers, radii = self.remove_overlaps(waypoints[:,0:2], waypoints[:,2])
                 waypoints = np.hstack((centers, np.expand_dims(radii, 1)))
-
-                self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-                plt.title("After remove_overlaps")
-                plt.show()
-
             # Select waypoints
-            self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-            plt.title("Before select_waypoints")
-            plt.show()
-
             waypoints = self.select_waypoints(waypoints[:,0:2],waypoints[:,2])
             print("Finished ", i, "...")
-            
-            self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-            plt.title("After select_waypoints")
-            plt.show()
+        self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+        plt.show()
             
     
     def visualize_pts(self, pts):
@@ -182,8 +170,7 @@ if __name__ == "__main__":
     # plt.show()
 
     # # Constructor
-    test_num_tasks = 20
-    taskgen = TaskGenerator(test_map, test_num_tasks)
+    taskgen = TaskGenerator(test_map)
     
     # # # Test generate_random_points
     # test_pts = taskgen.generate_random_points(1000)
@@ -209,4 +196,4 @@ if __name__ == "__main__":
     # # plt.show()
 
     # # Test generate_tasks
-    taskgen.generate_tasks(40)
+    taskgen.generate_tasks(10)
