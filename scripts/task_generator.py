@@ -121,8 +121,6 @@ class TaskGenerator:
             # Select waypoints
             waypoints = self.select_waypoints(waypoints[:,0:2],waypoints[:,2])
             print("Finished ", i, "...")
-        self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-        plt.show()
         # Remove redundant waypoints
         to_del = np.zeros(waypoints.shape[0]).astype(bool)
         for i in range(0, waypoints.shape[0]-1):
@@ -132,9 +130,7 @@ class TaskGenerator:
             close_mask = np.concatenate((np.zeros((i+1,)), other_dists < waypoints[i,2]/3)).astype(bool)
             to_del[close_mask] = True
         waypoints = waypoints[np.logical_not(to_del)]
-
-        self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
-        plt.show()
+        return waypoints
             
     
     def visualize_pts(self, pts):
@@ -209,4 +205,6 @@ if __name__ == "__main__":
     # # plt.show()
 
     # # Test generate_tasks
-    taskgen.generate_tasks(10)
+    waypoints = taskgen.generate_tasks(20)
+    taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+    plt.show()
