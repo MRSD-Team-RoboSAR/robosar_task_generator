@@ -98,6 +98,7 @@ class TaskGenerator:
         num_iter determines number of iterations
         Returns waypoints of final iteration
         """
+        # Generate good waypoints
         for i in range(0, num_iter):
             # Generate random points
             if i == 0:
@@ -120,6 +121,18 @@ class TaskGenerator:
             # Select waypoints
             waypoints = self.select_waypoints(waypoints[:,0:2],waypoints[:,2])
             print("Finished ", i, "...")
+        self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+        plt.show()
+        # Remove redundant waypoints
+        to_del = np.zeros(waypoints.shape[0]).astype(bool)
+        for i in range(0, waypoints.shape[0]-1):
+            cur_center = waypoints[i,0:2]
+            other_centers = waypoints[i+1:,0:2]
+            other_dists = np.linalg.norm(cur_center-other_centers,axis=1)
+            close_mask = np.concatenate((np.zeros((i+1,)), other_dists < waypoints[i,2]/3)).astype(bool)
+            to_del[close_mask] = True
+        waypoints = waypoints[np.logical_not(to_del)]
+
         self.visualize_circles(waypoints[:,0:2], waypoints[:,2])
         plt.show()
             
