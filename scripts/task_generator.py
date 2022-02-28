@@ -183,7 +183,7 @@ class TaskGenerator:
         """
         # Plot map
         xx,yy = np.meshgrid(np.arange(self._map.shape[0]), np.arange(self._map.shape[1]))
-        mask = self._map[xx,yy] > 0.5
+        mask = self._map[xx,yy] > self._threshold
         plt.scatter(xx[mask],yy[mask])
         # Plot pts
         plt.scatter(pts[:,0], pts[:,1])
@@ -191,7 +191,7 @@ class TaskGenerator:
     def visualize_circles(self, centers, radii):
         # Plot map
         xx,yy = np.meshgrid(np.arange(self._map.shape[0]), np.arange(self._map.shape[1]))
-        mask = self._map[xx,yy] > 0.5
+        mask = self._map[xx,yy] > self._threshold
         plt.scatter(xx[mask],yy[mask], c='k', s=1)
         # Plot circles
         for i in range(0, centers.shape[0]):
