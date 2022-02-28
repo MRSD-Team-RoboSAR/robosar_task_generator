@@ -123,7 +123,7 @@ class TaskGenerator:
         # Generate good waypoints
         for i in range(0, num_iter):
             # Generate random points
-            centers = self.generate_random_points(100)
+            centers = self.generate_random_points(self._num_samples)
             # Compute maximum radius for each point
             radii = self.max_circle_pts(centers)
             # Remove overlaps, current and past
