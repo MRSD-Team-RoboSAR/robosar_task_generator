@@ -32,13 +32,14 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
     import task_generator
     import time
+    import skimage.filters
 
     # # Test reading map
     test_map = read_pgm()
     # plt.imshow(test_map, cmap='Greys')
     # plt.show()
     
-    # # Test task_generator
+    # # Run task_generator
     taskgen = task_generator.TaskGenerator(test_map, threshold = 0.18, num_samples=1000)
     start = time.time()
     waypoints = taskgen.generate_tasks(20)
@@ -49,3 +50,13 @@ if __name__ == "__main__":
     plt.show()
     # Export waypoints
     np.save("../outputs/willow-full",waypoints[:,0:2])
+    # Fewer waypoints
+    otsu_threshold = skimage.filters.threshold_otsu(waypoints[:,2])
+    otsu_mask = waypoints[:,2] >= otsu_threshold
+    waypoints_lean = waypoints[otsu_mask]
+    taskgen.visualize_circles(waypoints_lean[:,0:2], waypoints_lean[:,2])
+    plt.show()
+    # Export waypoints_lean
+    np.save("../outputs/willow-full_lean",waypoints_lean[:,0:2])
+
+
