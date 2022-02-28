@@ -34,6 +34,9 @@ if __name__ == "__main__":
     import time
     import skimage.filters
 
+    # Seed RNG
+    np.random.seed(0)
+
     # # Test reading map
     test_map = read_pgm()
     # plt.imshow(test_map, cmap='Greys')
