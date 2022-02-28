@@ -50,6 +50,8 @@ if __name__ == "__main__":
     elapsed_time = end-start
     print("Elapsed time: ", elapsed_time, "s")
     taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+    plt.xlim([0, test_map.shape[0]])
+    plt.ylim([0, test_map.shape[1]])
     plt.show()
     # Export waypoints
     np.save("../outputs/willow-full",waypoints[:,0:2])
@@ -58,6 +60,8 @@ if __name__ == "__main__":
     otsu_mask = waypoints[:,2] >= otsu_threshold
     waypoints_lean = waypoints[otsu_mask]
     taskgen.visualize_circles(waypoints_lean[:,0:2], waypoints_lean[:,2])
+    plt.xlim([0, test_map.shape[0]])
+    plt.ylim([0, test_map.shape[1]])
     plt.show()
     # Export waypoints_lean
     np.save("../outputs/willow-full_lean",waypoints_lean[:,0:2])
