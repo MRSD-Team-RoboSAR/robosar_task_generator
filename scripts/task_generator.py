@@ -117,10 +117,7 @@ class TaskGenerator:
         # Generate good waypoints
         for i in range(0, num_iter):
             # Generate random points
-            if i == 0:
-                centers = self.generate_random_points(100)
-            else:
-                centers = self.generate_random_points(100)
+            centers = self.generate_random_points(100)
             # Compute maximum radius for each point
             radii = self.max_circle_pts(centers)
             # Remove overlaps, current and past
@@ -147,7 +144,32 @@ class TaskGenerator:
             to_del[close_mask] = True
         waypoints = waypoints[np.logical_not(to_del)]
         return waypoints
-            
+    
+    def generate_tasks_exhaustive(self):
+        """
+        Generate waypoints for a given map
+        Exhaustive, checking every point on map
+        Returns waypoints of final iteration
+        """
+        # Generate exhaustive points
+        centers = self.generate_exhaustive_points()
+        # Compute maximum radius for each point
+        radii = self.max_circle_pts(centers)
+        # Remove overlaps
+        centers, radii = self.remove_overlaps(centers, radii)
+        waypoints = np.hstack((centers, np.expand_dims(radii,1)))
+        # Select waypoints
+        waypoints = self.select_waypoints(waypoints[:,0:2],waypoints[:,2])
+        # Remove redundant waypoints
+        to_del = np.zeros(waypoints.shape[0]).astype(bool)
+        for i in range(0, waypoints.shape[0]-1):
+            cur_center = waypoints[i,0:2]
+            other_centers = waypoints[i+1:,0:2]
+            other_dists = np.linalg.norm(cur_center-other_centers,axis=1)
+            close_mask = np.concatenate((np.zeros((i+1,)), other_dists < waypoints[i,2]/3)).astype(bool)
+            to_del[close_mask] = True
+        waypoints = waypoints[np.logical_not(to_del)]
+        return waypoints
     
     def visualize_pts(self, pts):
         """
@@ -226,7 +248,12 @@ if __name__ == "__main__":
     # # taskgen.visualize_pts(test_waypoints)
     # # plt.show()
 
-    # # Test generate_tasks
+    # # # Test generate_tasks
     waypoints = taskgen.generate_tasks(20)
     taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
     plt.show()
+
+    # # Test generate_tasks_exhaustive
+    # waypoints = taskgen.generate_tasks_exhaustive()
+    # taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
+    # plt.show()
