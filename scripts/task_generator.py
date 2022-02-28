@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 import skimage.filters
+from multiprocessing import Pool
 
 import max_circle
 
@@ -58,8 +59,13 @@ class TaskGenerator:
         Generates array of maximum radius for each given point
         """
         max_radius_array = np.zeros((pts.shape[0],))
+        # Prepare arguments
+        arg_list = []
         for i in range(0, pts.shape[0]):
-            max_radius_array[i] = self._maxcircle.max_radius(pts[i])
+            arg_list.append(pts[i])
+        with Pool() as p:
+            rst_list = p.map(self._maxcircle.max_radius, arg_list)
+        max_radius_array = np.array(rst_list)
         return max_radius_array
     
     def remove_overlaps(self, centers, radii):
