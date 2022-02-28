@@ -47,3 +47,5 @@ if __name__ == "__main__":
     print("Elapsed time: ", elapsed_time, "s")
     taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
     plt.show()
+    # Export waypoints
+    np.save("../outputs/willow-full",waypoints[:,0:2])
