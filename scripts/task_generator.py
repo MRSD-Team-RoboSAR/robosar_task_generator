@@ -67,7 +67,37 @@ class TaskGenerator:
             rst_list = p.map(self._maxcircle.max_radius, arg_list)
         max_radius_array = np.array(rst_list)
         return max_radius_array
-    
+
+    def remove_overlaps_helper(self, args):
+        """
+        Helper called by remove_overlaps for multithreading
+        """
+        centers, radii, i = args
+        to_delete = np.zeros((centers.shape[0],)).astype(bool)
+        cur_center = centers[i]
+        cur_radius = radii[i]
+        other_centers = np.delete(np.copy(centers), i, axis=0)
+        other_radii = np.delete(np.copy(radii), i)
+        other_idx = np.delete(np.arange(0,centers.shape[0]), i)
+        # Can eliminiate candidates that are further than radius in x or y directions
+        candidates_mask_x = np.logical_and(other_centers[:,0] > (cur_center[0]-cur_radius), other_centers[:,0] < (cur_center[0]+cur_radius))
+        candidates_mask_y = np.logical_and(other_centers[:,1] > (cur_center[1]-cur_radius), other_centers[:,1] < (cur_center[1]+cur_radius))
+        candidates_mask = np.logical_and(candidates_mask_x, candidates_mask_y)
+        candidates = other_centers[candidates_mask]
+        candidates_radii = other_radii[candidates_mask]
+        candidates_idx = other_idx[candidates_mask]
+        # Check if candidates are within cur_circle
+        candidate_dists = np.linalg.norm(cur_center-candidates,axis=1)
+        confirmed_mask = candidate_dists < cur_radius
+        confirmed = candidates[confirmed_mask]
+        confirmed_radii = candidates_radii[confirmed_mask]
+        confirmed_idx = candidates_idx[confirmed_mask]
+        # Flag smaller circles for deletion
+        smaller_mask = confirmed_radii < cur_radius
+        to_delete_mask = confirmed_idx[smaller_mask]
+        to_delete[to_delete_mask] = True
+        return to_delete
+
     def remove_overlaps(self, centers, radii):
         """
         Find and remove centers that are included in other circles
@@ -75,29 +105,18 @@ class TaskGenerator:
         Returns centers and radii without overlap
         """
         to_delete = np.zeros((centers.shape[0],)).astype(bool)
-        for i in range(0,centers.shape[0]):
-            cur_center = centers[i]
-            cur_radius = radii[i]
-            other_centers = np.delete(np.copy(centers), i, axis=0)
-            other_radii = np.delete(np.copy(radii), i)
-            other_idx = np.delete(np.arange(0,centers.shape[0]), i)
-            # Can eliminiate candidates that are further than radius in x or y directions
-            candidates_mask_x = np.logical_and(other_centers[:,0] > (cur_center[0]-cur_radius), other_centers[:,0] < (cur_center[0]+cur_radius))
-            candidates_mask_y = np.logical_and(other_centers[:,1] > (cur_center[1]-cur_radius), other_centers[:,1] < (cur_center[1]+cur_radius))
-            candidates_mask = np.logical_and(candidates_mask_x, candidates_mask_y)
-            candidates = other_centers[candidates_mask]
-            candidates_radii = other_radii[candidates_mask]
-            candidates_idx = other_idx[candidates_mask]
-            # Check if candidates are within cur_circle
-            candidate_dists = np.linalg.norm(cur_center-candidates,axis=1)
-            confirmed_mask = candidate_dists < cur_radius
-            confirmed = candidates[confirmed_mask]
-            confirmed_radii = candidates_radii[confirmed_mask]
-            confirmed_idx = candidates_idx[confirmed_mask]
-            # Flag smaller circles for deletion
-            smaller_mask = confirmed_radii < cur_radius
-            to_delete_mask = confirmed_idx[smaller_mask]
-            to_delete[to_delete_mask] = True
+        # Prepare inputs
+        arg_list = []
+        for i in range(0, centers.shape[0]):
+            arg_list.append((centers, radii, i))
+        # Multithreading
+        with Pool() as p:
+            rst_list = p.map(self.remove_overlaps_helper, arg_list)
+        # Combine results
+        to_delete = np.zeros((centers.shape[0],)).astype(bool)
+        for i in range(0, len(rst_list)):
+            to_delete = np.logical_or(to_delete, rst_list[i])
+        # Only keep circles of interest
         to_keep = np.logical_not(to_delete)
         new_centers = centers[to_keep]
         new_radii = radii[to_keep]
