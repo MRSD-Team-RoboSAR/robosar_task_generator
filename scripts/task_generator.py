@@ -36,7 +36,23 @@ class TaskGenerator:
             is_collision = np.any(collision_mask)
         pts = np.hstack((np.expand_dims(x_coord,1), np.expand_dims(y_coord,1)))
         return pts
-    
+
+    def generate_exhaustive_points(self):
+        """
+        Generates points on every valid point on map
+        """
+        num_pts = 0
+        x = np.arange(0, self._map.shape[0])
+        y = np.arange(0, self._map.shape[1])
+        x_coord, y_coord = np.meshgrid(x,y)
+        x_coord = x_coord.reshape((-1,))
+        y_coord = y_coord.reshape((-1,))
+        map_vals = self._map[x_coord,y_coord]
+        collision_mask = map_vals > self._threshold
+        valid_mask = np.logical_not(collision_mask)
+        pts = np.hstack((np.expand_dims(x_coord[valid_mask],1), np.expand_dims(y_coord[valid_mask],1)))
+        return pts
+
     def max_circle_pts(self, pts):
         """
         Generates array of maximum radius for each given point
@@ -181,6 +197,12 @@ if __name__ == "__main__":
     # # Constructor
     taskgen = TaskGenerator(test_map)
     
+    # # # Test generate_exhaustive_points
+    # test_pts = taskgen.generate_exhaustive_points()
+    # taskgen.visualize_pts(test_pts)
+    # plt.title("generate_random_points test")
+    # plt.show()
+
     # # # Test generate_random_points
     # test_pts = taskgen.generate_random_points(1000)
     # # taskgen.visualize_pts(test_pts)
