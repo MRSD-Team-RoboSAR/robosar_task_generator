@@ -50,7 +50,7 @@ class MaxCircle:
         Returns True if collision occurs
         """
         pts = np.vstack((np.expand_dims(center,0),circle))
-        if((np.max(pts[:,0]) > self._map.shape[0]) or (np.max(pts[:,1]) > self._map.shape[1]) or (np.min(pts[:,0]) < 0) or (np.min(pts[:,1]) < 0)):
+        if((np.max(pts[:,0]) >= self._map.shape[0]) or (np.max(pts[:,1]) >= self._map.shape[1]) or (np.min(pts[:,0]) < 0) or (np.min(pts[:,1]) < 0)):
             # Out of bounds; consider this a collision
             print("WARN: Circle is out of bounds")
             return True
