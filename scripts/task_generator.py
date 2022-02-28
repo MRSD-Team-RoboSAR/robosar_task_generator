@@ -205,6 +205,8 @@ class TaskGenerator:
 
 
 if __name__ == "__main__":
+    import time
+
     # # Generate map; map uses (x,y) not (row,col)
     test_map = np.zeros((300, 400))
     # Boundaries
@@ -254,12 +256,20 @@ if __name__ == "__main__":
     # # taskgen.visualize_pts(test_waypoints)
     # # plt.show()
 
-    # # # Test generate_tasks
+    # # Test generate_tasks
+    start = time.time()
     waypoints = taskgen.generate_tasks(20)
+    end = time.time()
+    elapsed_time = end-start
+    print("Elapsed time: ", elapsed_time, "s")
     taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
     plt.show()
 
-    # # Test generate_tasks_exhaustive
+    # # # Test generate_tasks_exhaustive
+    # start = time.time()
     # waypoints = taskgen.generate_tasks_exhaustive()
+    # end = time.time()
+    # elapsed_time = end-start
+    # print("Elapsed time: ", elapsed_time, "s")
     # taskgen.visualize_circles(waypoints[:,0:2], waypoints[:,2])
     # plt.show()
