@@ -16,7 +16,7 @@ def read_pgm():
     width = 584
     height = 526
     depth = 255
-
+    # Read in map from file
     map = np.zeros((width,height))
     raster = []
     for y in range(height):
@@ -24,7 +24,9 @@ def read_pgm():
         for y in range(width):
             row.append(ord(pgmf.read(1)))
         raster.append(row)
+    # Convert (row,col) to (x,y)
     map = np.flip(np.asarray(raster).T,axis=1)/depth
+    # Make freespace = 0, make occupied = 1
     map = 1-map
     return map
 
@@ -43,7 +45,7 @@ if __name__ == "__main__":
     # plt.show()
     
     # # Run task_generator
-    taskgen = task_generator.TaskGenerator(test_map, threshold = 0.18, num_samples=1000)
+    taskgen = task_generator.TaskGenerator(test_map, threshold = 0.18, num_samples=100)
     start = time.time()
     waypoints = taskgen.generate_tasks(20)
     end = time.time()
