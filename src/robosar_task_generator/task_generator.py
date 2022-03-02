@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import skimage.filters
 from multiprocessing import Pool
 
-import max_circle
+from robosar_task_generator import max_circle
 
 class TaskGenerator:
     """
@@ -33,7 +33,7 @@ class TaskGenerator:
             x_coord[collision_mask] = np.random.randint(0, self._map.shape[0], np.count_nonzero(collision_mask))
             y_coord[collision_mask] = np.random.randint(0, self._map.shape[1], np.count_nonzero(collision_mask))
             map_vals = self._map[x_coord,y_coord]
-            collision_mask = map_vals > self._threshold
+            collision_mask = np.logical_or(map_vals > self._threshold, map_vals < 0)
             is_collision = np.any(collision_mask)
         pts = np.hstack((np.expand_dims(x_coord,1), np.expand_dims(y_coord,1)))
         return pts
@@ -49,7 +49,7 @@ class TaskGenerator:
         x_coord = x_coord.reshape((-1,))
         y_coord = y_coord.reshape((-1,))
         map_vals = self._map[x_coord,y_coord]
-        collision_mask = map_vals > self._threshold
+        collision_mask = np.logical_or(map_vals > self._threshold, map_vals<0)
         valid_mask = np.logical_not(collision_mask)
         pts = np.hstack((np.expand_dims(x_coord[valid_mask],1), np.expand_dims(y_coord[valid_mask],1)))
         return pts

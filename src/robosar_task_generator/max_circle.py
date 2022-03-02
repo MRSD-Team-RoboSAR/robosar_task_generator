@@ -46,7 +46,7 @@ class MaxCircle:
     
     def check_collision(self, center, circle):
         """
-        Check circle against map for collisions (above threshold)
+        Check circle against map for collisions (above threshold or negative)
         Returns True if collision occurs
         """
         pts = np.vstack((np.expand_dims(center,0),circle))
@@ -55,7 +55,7 @@ class MaxCircle:
             print("WARN: Circle is out of bounds")
             return True
         map_vals = self._map[pts[:,0],pts[:,1]]
-        return np.any(map_vals > self._threshold)
+        return np.any(map_vals > self._threshold) or np.any(map_vals < 0.0)
     
     def max_radius(self, center):
         """
