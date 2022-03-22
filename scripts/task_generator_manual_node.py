@@ -8,12 +8,42 @@ import numpy as np
 from geometry_msgs.msg import PointStamped
 import math
 import threading
+from visualization_msgs.msg import Marker, MarkerArray
 
 # Global variables
 num_waypoints = 0
 waypoints_array = []
 got_all_waypoints = False
 evt = threading.Event()
+marker_array = MarkerArray()
+marker_id = 1
+
+
+def publish_rviz_marker(point):
+    global marker_array, marker_id, pub
+    marker = Marker()
+
+    marker.header.stamp = rospy.Time.now()
+    marker.header.frame_id = "map"
+    marker.type = 2 # sphere
+    marker.action = 0 # add
+    marker.id = marker_id
+    marker_id = marker_id + 1
+    marker.pose.position.x = point[0]
+    marker.pose.position.y = point[1]
+
+    marker.scale.x = 1
+    marker.scale.y = 1
+    marker.scale.z = 1
+
+    marker.color.r = 255
+    marker.color.g = 0
+    marker.color.b = 0
+    marker.color.a = 1
+
+    marker_array.markers.append(marker)
+    pub.publish(marker_array)
+
 
 def handle_taskgen_getwaypts(req):
     global waypoints_array, got_all_waypoints, evt, num_waypoints
@@ -67,13 +97,16 @@ def callback(data):
     num_waypoints = num_waypoints + 1
     rospy.loginfo("Received waypoint %d",num_waypoints)
     waypoints_array.append((data.point.x,data.point.y))
+    publish_rviz_marker(waypoints_array[num_waypoints-1])
 
     
 
 def task_generator_server():
+    global pub
     rospy.init_node('task_generator_server')
     s = rospy.Service('taskgen_getwaypts', taskgen_getwaypts, handle_taskgen_getwaypts)
     rospy.Subscriber("clicked_point", PointStamped, callback)
+    pub = rospy.Publisher('robosar_task_generator/task_visualisation', MarkerArray, queue_size=10)
     print("Ready to generate waypts")
     rospy.spin()
 
