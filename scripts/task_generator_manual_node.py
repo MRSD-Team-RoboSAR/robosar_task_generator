@@ -45,23 +45,28 @@ def handle_taskgen_getwaypts(req):
     num_pts = num_waypoints
     dims = 2
     waypts = waypoints #waypoints[:,0:2].flatten()
+    
+    # Clear previous waypoints
+    evt.clear()
+    num_waypoints = 0
+    waypoints_array = []
     return taskgen_getwayptsResponse(num_pts, dims, waypts)
 
 def callback(data):
     global num_waypoints,waypoints_array,got_all_waypoints,evt
 
+    # Check if received all waypoints
+    threshold = 0.1
+    if(num_waypoints>=1):
+        # Get distance betwen subsequent waypoints
+        distance = math.hypot(waypoints_array[num_waypoints-1][0]-data.point.x,
+                        waypoints_array[num_waypoints-1][1]-data.point.y)
+        if(distance<threshold):
+            evt.set()
+    
     num_waypoints = num_waypoints + 1
     rospy.loginfo("Received waypoint %d",num_waypoints)
     waypoints_array.append((data.point.x,data.point.y))
-
-    # Check if received all waypoints
-    threshold = 0.1
-    if(num_waypoints>1):
-        # Get distance betwen subsequent waypoints
-        distance = math.hypot(waypoints_array[num_waypoints-1][0]-waypoints_array[num_waypoints-2][0],
-                        waypoints_array[num_waypoints-1][1]-waypoints_array[num_waypoints-2][1])
-        if(distance<threshold):
-            evt.set()
 
     
 
