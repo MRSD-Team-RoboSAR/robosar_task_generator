@@ -93,6 +93,7 @@ def callback(data):
                         waypoints_array[num_waypoints-1][1]-data.point.y)
         if(distance<threshold):
             evt.set()
+            return
     
     num_waypoints = num_waypoints + 1
     rospy.loginfo("Received waypoint %d",num_waypoints)
