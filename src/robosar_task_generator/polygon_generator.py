@@ -2,6 +2,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.patches import Polygon
 
 def round_pnt(pnt):
     """
@@ -12,13 +13,32 @@ def round_pnt(pnt):
 def collision_detection(pnts, map, threshold):
     """
     Checks provided list of points (n x 2, int) for collision on map
+    Returns collision coord with highest value
     """
     # Check for illegal values
     if(np.any(pnts[:,0] < 0) or np.any(pnts[:,0] > map.shape[0]) or np.any(pnts[:,1] < 0) or np.any(pnts[:,1] > map.shape[1])):
         return True
     else:
         vals = map[pnts[:,0],pnts[:,1]]
-        return np.any(vals > threshold)
+        is_collision = np.any(vals > threshold)
+        idx = np.argmax(vals)
+        pnt = pnts[idx]
+        return is_collision, pnt
+
+def plot_points(pnts, color = None):
+    # Visualize points
+    plt.scatter(pnts[:,0], pnts[:,1], color=color)
+
+def plot_map(map, color = None, threshold=0.5):
+    # Visualize map
+    xx,yy = np.meshgrid(np.arange(map.shape[0]), np.arange(map.shape[1]))
+    mask = map[xx,yy] > threshold
+    plt.scatter(xx[mask],yy[mask], color = color)
+
+def plot_polygon(polygon, color = None):
+    # Visualize polygon
+    temp_pnts = np.vstack((polygon, polygon[0]))
+    plt.plot(temp_pnts[:,0], temp_pnts[:,1])
 
 def get_line(initial_pnt, angle, max_range):
     """
@@ -38,8 +58,6 @@ def get_line(initial_pnt, angle, max_range):
             continue
         # Append
         to_rtn=np.vstack((to_rtn, cur_pnt_int))            
-    plt.scatter(to_rtn[:,0], to_rtn[:,1])
-    # plt.show()
     return to_rtn
 
 def get_scircle(center, angle, radius):
@@ -67,8 +85,6 @@ def get_scircle(center, angle, radius):
             if(np.all(cur_pnt == to_rtn[-1])):
                 continue
             to_rtn=np.vstack((to_rtn, cur_pnt))
-    plt.scatter(to_rtn[:,0], to_rtn[:,1])
-    # plt.show()
     return to_rtn
 
 
@@ -82,33 +98,38 @@ def polygon_generator(initial_pnt, initial_angle, map, num_vert, radius, max_ran
     max_range: maximum length vertice can be from initial point
     threshold: value above which point on map is considered colliding with semi-circle
     """
+    first_time = True
     for vert_idx in range(0, num_vert):
         # Compute angle
         cur_angle = initial_angle + np.pi-2*np.pi*vert_idx/(num_vert + 1)
         # Compute line
-        cur_line = np.zeros((5,2)).astype('int')
+        cur_line = get_line(initial_pnt, cur_angle, max_range)
         # Loop over line, then semicircle, checking for collisions
         go_to_next_vert = False
         for line_idx in range(0,cur_line.shape[0]):
             # Compute semicircle
-            center_x, center_y = cur_line[line_idx]
-            cur_scircle = np.zeros((5,2)).astype('int')
-            for scircle_idx in range(0,cur_scircle.shape[0]):
-                # Check for collision
-                x_coord, y_coord = cur_scircle[scircle_idx]
-                cur_val = map[x_coord, y_coord]
-                if(cur_val > threshold):
-                    # Collision; append and go to next vert
-                    print("Collision")
-                    go_to_next_vert = True
-                    break
-            if(go_to_next_vert):
-                # Collision, already accounted for; go to next vert
+            cur_center = cur_line[line_idx]
+            cur_scircle = get_scircle(cur_center, cur_angle, radius)
+            # Collision detection
+            is_collision, new_pnt = collision_detection(cur_scircle, map, threshold)
+            if(is_collision):
+                # Collision occurred; append to list then break
+                if(first_time):
+                    first_time = False
+                    poly_list = new_pnt
+                else:
+                    poly_list = np.vstack((poly_list, new_pnt))
+                go_to_next_vert = True
                 break
+            # If no collision detected, keep going
+        # Check if collision occurred; if not, append current point
+        if(go_to_next_vert == False):
+            if(first_time):
+                first_time = False
+                poly_list = cur_center
             else:
-                # No collision occurred; append and go to next vert
-                print("No collision")
-    print("Done")
+                poly_list = np.vstack((poly_list, cur_center))
+    return poly_list
 
 if __name__ == "__main__":
     # # Generate map; map uses (x,y) not (row,col)
@@ -124,26 +145,27 @@ if __name__ == "__main__":
     test_map[[125,175], 175:225] = 1
     test_map[[125,175], 275:325] = 1
     # Plot map
-    xx,yy = np.meshgrid(np.arange(test_map.shape[0]), np.arange(test_map.shape[1]))
-    mask = test_map[xx,yy] > 0.5
-    plt.scatter(xx[mask],yy[mask])
+    # plot_map(test_map)
     # plt.show()
 
     # Function inputs
-    test_pnt = np.array([50,-150])
-    test_angle = -np.pi
+    test_pnt = np.array([150,150])
+    test_angle = np.pi/6
     num_vert = 10
-    radius = 100
-    max_range = 10
+    radius = 10
+    max_range = 100
     threshold = 0.5
     # Test
-    pnts1 = get_line(test_pnt, test_angle, max_range)
-    pnts2 = get_scircle(test_pnt, test_angle, radius)
-    if(collision_detection(pnts1, test_map, threshold)):
-        print("Collision on line")
-    if(collision_detection(pnts2, test_map, threshold)):
-        print("Collision on scircle")
+    # pnts1 = get_line(test_pnt, test_angle, max_range)
+    # pnts2 = get_scircle(test_pnt, test_angle, radius)
+    # if(collision_detection(pnts1, test_map, threshold)):
+    #     print("Collision on line")
+    # if(collision_detection(pnts2, test_map, threshold)):
+    #     print("Collision on scircle")
+    # plt.show()
+    poly = polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
+    plot_map(test_map, 'k')
+    plt.scatter(test_pnt[0], test_pnt[1])
+    plot_polygon(poly)
     plt.show()
-    # polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
-    # Visualize results
-    print("Visualization:")
+    print("Done:")
