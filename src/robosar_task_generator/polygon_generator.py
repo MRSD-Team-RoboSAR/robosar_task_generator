@@ -9,6 +9,17 @@ def round_pnt(pnt):
     """
     return np.array([pnt[0],pnt[1]]).astype('int')
 
+def collision_detection(pnts, map, threshold):
+    """
+    Checks provided list of points (n x 2, int) for collision on map
+    """
+    # Check for illegal values
+    if(np.any(pnts[:,0] < 0) or np.any(pnts[:,0] > map.shape[0]) or np.any(pnts[:,1] < 0) or np.any(pnts[:,1] > map.shape[1])):
+        return True
+    else:
+        vals = map[pnts[:,0],pnts[:,1]]
+        return np.any(vals > threshold)
+
 def get_line(initial_pnt, angle, max_range):
     """
     Generates a line (n x 2, ordered) from starting point up to max range at 
@@ -29,6 +40,7 @@ def get_line(initial_pnt, angle, max_range):
         to_rtn=np.vstack((to_rtn, cur_pnt_int))            
     plt.scatter(to_rtn[:,0], to_rtn[:,1])
     # plt.show()
+    return to_rtn
 
 def get_scircle(center, angle, radius):
     """
@@ -56,8 +68,8 @@ def get_scircle(center, angle, radius):
                 continue
             to_rtn=np.vstack((to_rtn, cur_pnt))
     plt.scatter(to_rtn[:,0], to_rtn[:,1])
-    plt.show()
-
+    # plt.show()
+    return to_rtn
 
 
 def polygon_generator(initial_pnt, initial_angle, map, num_vert, radius, max_range, threshold):
@@ -118,15 +130,20 @@ if __name__ == "__main__":
     # plt.show()
 
     # Function inputs
-    test_pnt = np.array([100,150])
-    test_angle = np.pi/6
+    test_pnt = np.array([50,-150])
+    test_angle = -np.pi
     num_vert = 10
     radius = 100
-    max_range = 100
+    max_range = 10
     threshold = 0.5
     # Test
-    get_line(test_pnt, test_angle, max_range)
-    get_scircle(test_pnt, test_angle, radius)
+    pnts1 = get_line(test_pnt, test_angle, max_range)
+    pnts2 = get_scircle(test_pnt, test_angle, radius)
+    if(collision_detection(pnts1, test_map, threshold)):
+        print("Collision on line")
+    if(collision_detection(pnts2, test_map, threshold)):
+        print("Collision on scircle")
+    plt.show()
     # polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
     # Visualize results
     print("Visualization:")
