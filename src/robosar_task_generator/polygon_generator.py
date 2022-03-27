@@ -9,7 +9,7 @@ def round_pnt(pnt):
     """
     return np.array([pnt[0],pnt[1]]).astype('int')
 
-def get_line(initial_pnt, angle, map, max_range, threshold):
+def get_line(initial_pnt, angle, max_range):
     """
     Generates a line (n x 2, ordered) from starting point up to max range at 
     specified angle, or until collision occurs
@@ -26,14 +26,38 @@ def get_line(initial_pnt, angle, map, max_range, threshold):
         if(np.all(cur_pnt_int == to_rtn[-1])):
             continue
         # Append
-        to_rtn=np.vstack((to_rtn, cur_pnt_int))
-        # Check map; break if collision
-        cur_val = map[cur_pnt_int[0], cur_pnt_int[1]]
-        if(cur_val > threshold):
-            break
-            
+        to_rtn=np.vstack((to_rtn, cur_pnt_int))            
+    plt.scatter(to_rtn[:,0], to_rtn[:,1])
+    # plt.show()
+
+def get_scircle(center, angle, radius):
+    """
+    Draws semicircle with given radius oriented at angle at center
+    center: point, 1 x 2 array int
+    angle: radians
+    radius: float
+    """
+    first_time = True
+    cur_angle = angle
+    resolution = 100
+    for i in range(0,resolution):
+        cur_angle = angle + (i - resolution/2)/resolution * np.pi
+        cur_pnt = np.array([
+            center[0] + radius * np.cos(cur_angle),
+            center[1] + radius * np.sin(cur_angle)
+        ])
+        cur_pnt = round_pnt(cur_pnt)
+        if(first_time):
+            first_time = False
+            to_rtn = cur_pnt
+        else:
+            # Check for redundancy
+            if(np.all(cur_pnt == to_rtn[-1])):
+                continue
+            to_rtn=np.vstack((to_rtn, cur_pnt))
     plt.scatter(to_rtn[:,0], to_rtn[:,1])
     plt.show()
+
 
 
 def polygon_generator(initial_pnt, initial_angle, map, num_vert, radius, max_range, threshold):
@@ -94,14 +118,15 @@ if __name__ == "__main__":
     # plt.show()
 
     # Function inputs
-    test_pnt = np.array([1,1])
-    test_angle = 0
+    test_pnt = np.array([100,150])
+    test_angle = np.pi/6
     num_vert = 10
-    radius = 5
-    max_range = 1000
+    radius = 100
+    max_range = 100
     threshold = 0.5
     # Test
-    get_line(test_pnt, np.pi/3, test_map, max_range, threshold)
-    polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
+    get_line(test_pnt, test_angle, max_range)
+    get_scircle(test_pnt, test_angle, radius)
+    # polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
     # Visualize results
     print("Visualization:")
