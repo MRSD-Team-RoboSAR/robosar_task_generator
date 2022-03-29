@@ -40,6 +40,11 @@ def plot_polygon(polygon, color = None):
     temp_pnts = np.vstack((polygon, polygon[0]))
     plt.plot(temp_pnts[:,0], temp_pnts[:,1])
 
+def plot_polygon_list(polygons):
+    # Visualize multiple polygons
+    for poly in polygons:
+        plot_polygon(poly)
+
 def get_line(initial_pnt, angle, max_range):
     """
     Generates a line (n x 2, ordered) from starting point up to max range at 
@@ -131,6 +136,16 @@ def polygon_generator(initial_pnt, initial_angle, map, num_vert, radius, max_ran
                 poly_list = np.vstack((poly_list, cur_center))
     return poly_list
 
+def multi_polygon_generation(points, initial_angle, map, num_vert, radius, max_range, threshold):
+    """
+    Takes in multiple points and uses each to generate multiple polygons
+    points: (n x 2, int) list of points
+    """
+    poly_list = []
+    for row_idx in range(0,points.shape[0]):
+        poly_list.append(polygon_generator(points[row_idx,:], initial_angle, map, num_vert, radius, max_range, threshold))
+    return poly_list
+
 if __name__ == "__main__":
     # # Generate map; map uses (x,y) not (row,col)
     test_map = np.zeros((300, 400))
@@ -150,22 +165,27 @@ if __name__ == "__main__":
 
     # Function inputs
     test_pnt = np.array([150,150])
-    test_angle = np.pi/6
+    test_pnts = np.array([
+        [50, 50],
+        [150, 150],
+        [50, 150],
+        [150, 50]
+    ])
+    test_angle = 0
     num_vert = 10
     radius = 10
     max_range = 100
     threshold = 0.5
     # Test
-    # pnts1 = get_line(test_pnt, test_angle, max_range)
-    # pnts2 = get_scircle(test_pnt, test_angle, radius)
-    # if(collision_detection(pnts1, test_map, threshold)):
-    #     print("Collision on line")
-    # if(collision_detection(pnts2, test_map, threshold)):
-    #     print("Collision on scircle")
-    # plt.show()
     poly = polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
     plot_map(test_map, 'k')
     plt.scatter(test_pnt[0], test_pnt[1])
     plot_polygon(poly)
     plt.show()
-    print("Done:")
+    polys = multi_polygon_generation(test_pnts, test_angle, test_map, num_vert, radius, max_range, threshold)
+    plot_map(test_map, 'k')
+    plt.scatter(test_pnts[:,0], test_pnts[:,1])
+    plot_polygon_list(polys)
+    plt.show()
+    
+    print("Done")
