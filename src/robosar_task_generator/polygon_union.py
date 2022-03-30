@@ -1,10 +1,11 @@
 import numpy as np
-from matplotlib import pyplot as plt
 import pyclipper
 import polygon_generator as polygen
-from scipy import ndimage
 
 if __name__ == "__main__":
+    from matplotlib import pyplot as plt
+    from scipy import ndimage
+
     """ Get polygons """
     # Generate map; map uses (x,y) not (row,col)
     test_map = np.zeros((300, 400))
@@ -70,4 +71,5 @@ if __name__ == "__main__":
     polygen.plot_map(test_map, 'k')
     polygen.plot_polygon_list(poly_list2)
     plt.show()
+
     print("Done")
