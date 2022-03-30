@@ -2,7 +2,6 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.patches import Polygon
 
 def round_pnt(pnt):
     """
@@ -176,12 +175,13 @@ if __name__ == "__main__":
     radius = 10
     max_range = 100
     threshold = 0.5
-    # Test
+    # Test, single
     poly = polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
     plot_map(test_map, 'k')
     plt.scatter(test_pnt[0], test_pnt[1])
     plot_polygon(poly)
     plt.show()
+    # Test, multi
     polys = multi_polygon_generation(test_pnts, test_angle, test_map, num_vert, radius, max_range, threshold)
     plot_map(test_map, 'k')
     plt.scatter(test_pnts[:,0], test_pnts[:,1])
