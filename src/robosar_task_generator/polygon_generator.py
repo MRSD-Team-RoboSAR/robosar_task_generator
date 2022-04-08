@@ -146,46 +146,23 @@ def multi_polygon_generation(points, initial_angle, map, num_vert, radius, max_r
     return poly_list
 
 if __name__ == "__main__":
-    # # Generate map; map uses (x,y) not (row,col)
+    # Generate map; map uses (x,y) not (row,col)
     test_map = np.zeros((300, 400))
     # Boundaries
     test_map[[0,-1],:] = 1
     test_map[:,[0,-1]] = 1
     # Horizontal walls
-    test_map[0:125, [100,200,300]] = 1
+    test_map[75:125, [100,200,300]] = 1
     test_map[175:, [100,200,300]] = 1
     # Vertical walls
     test_map[[125,175], 75:125] = 1
     test_map[[125,175], 175:225] = 1
     test_map[[125,175], 275:325] = 1
-    # Plot map
-    # plot_map(test_map)
-    # plt.show()
+    # Thicken
+    test_map = ndimage.binary_dilation(test_map, iterations=4)
+    test_map = test_map.astype('int')
 
-    # Function inputs
-    test_pnt = np.array([150,150])
-    test_pnts = np.array([
-        [50, 50],
-        [150, 150],
-        [50, 150],
-        [150, 50]
-    ])
-    test_angle = 0
-    num_vert = 10
-    radius = 10
-    max_range = 100
-    threshold = 0.5
-    # Test, single
-    poly = polygon_generator(test_pnt, test_angle, test_map, num_vert, radius, max_range, threshold)
-    plot_map(test_map, 'k')
-    plt.scatter(test_pnt[0], test_pnt[1])
-    plot_polygon(poly)
-    plt.show()
-    # Test, multi
-    polys = multi_polygon_generation(test_pnts, test_angle, test_map, num_vert, radius, max_range, threshold)
-    plot_map(test_map, 'k')
-    plt.scatter(test_pnts[:,0], test_pnts[:,1])
-    plot_polygon_list(polys)
+    polygen.plot_map(test_map, 'k')
     plt.show()
     
     print("Done")
