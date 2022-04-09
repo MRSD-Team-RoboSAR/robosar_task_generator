@@ -103,7 +103,7 @@ def plot_map(map, color = None, threshold=0.5):
     # Visualize map
     xx,yy = np.meshgrid(np.arange(map.shape[0]), np.arange(map.shape[1]))
     mask = map[xx,yy] > threshold
-    plt.scatter(xx[mask],yy[mask], color = color)
+    plt.scatter(xx[mask],yy[mask], color = color, s=0.1)
 
 def image_thinning(fa_map):
     """
@@ -126,49 +126,100 @@ def image_thinning(fa_map):
         # Combine sets
         S = np.vstack((S2.reshape((-1,2)), S3.reshape((-1,2)), S4.reshape((-1,2)), Sns.reshape((-1,2)))).astype('int')
         # S = Sns
-        plot_map(ogm,'k')
-        plot_map(fa_map_copy,'r')
-        plt.scatter(S[:,0],S[:,1],color='g')
-        plt.show()
+        # S = Sns
+        # plot_map(ogm,'k')
+        # plot_map(fa_map_copy,'r')
+        # if(S.shape[0]>0):
+        #     plt.scatter(S[:,0],S[:,1],color='g')
+        # plt.show()
         print("Num points to zero: ", S.shape[0])
         if(S.shape[0]):
             isdeleted = True
             fa_map_copy[S[:,0],S[:,1]] = 0
-    plot_map(fa_map_copy)
+    plot_map(ogm,'k')
+    plot_map(fa_map_copy,'r')
     plt.show()
 
+def read_pgm(file):
+    """Return a raster of integers from a PGM as a list of lists."""
+    # Open file
+    pgmf = open(file, 'rb')
+    # Discard first line; P5
+    print(pgmf.readline())
+    # Discard second line; resolution
+    print(pgmf.readline())
+    # Discard third line; dimensions
+    print(pgmf.readline())
+    # Discard fourth line; depth
+    print(pgmf.readline())
+    # Hardcode values for map for now
+    width = 584
+    height = 526
+    depth = 255
+    # Read in map from file
+    map = np.zeros((width,height))
+    raster = []
+    for y in range(height):
+        row = []
+        for y in range(width):
+            row.append(ord(pgmf.read(1)))
+        raster.append(row)
+    # Convert (row,col) to (x,y)
+    map = np.flip(np.asarray(raster).T,axis=1)/depth
+    # Make freespace = 0, make occupied = 1
+    map = 1-map
+    map = (map>0.1)*1
+    return map
 
 if __name__ == "__main__":
-    # # Generate map; map uses (x,y) not (row,col)
-    # test_map = np.zeros((300, 400))
-    # # Boundaries
-    # test_map[[0,-1],:] = 1
-    # test_map[:,[0,-1]] = 1
-    # # Horizontal walls
-    # test_map[75:125, [100,200,300]] = 1
-    # test_map[175:, [100,200,300]] = 1
-    # # Vertical walls
-    # test_map[[125,175], 75:125] = 1
-    # test_map[[125,175], 175:225] = 1
-    # test_map[[125,175], 275:325] = 1
-    # # Thicken
-    # test_map = ndimage.binary_dilation(test_map, iterations=4)
-    # test_map = test_map.astype('int')
-    
-    # Smaller test map
-    test_map = np.zeros((100,50))
+    # Generate map; map uses (x,y) not (row,col)
+    test_map = np.zeros((300, 400))
     # Boundaries
     test_map[[0,-1],:] = 1
     test_map[:,[0,-1]] = 1
     # Horizontal walls
-    test_map[0:50, [15,35]] = 1
-    test_map[80:, [15,35]] = 1
+    test_map[75:125, [100,200,300]] = 1
+    test_map[175:, [100,200,300]] = 1
+    # Vertical walls
+    test_map[[125,175], 75:125] = 1
+    test_map[[125,175], 175:225] = 1
+    test_map[[125,175], 275:325] = 1
     # Thicken
-    test_map = ndimage.binary_dilation(test_map, iterations=3)
+    test_map = ndimage.binary_dilation(test_map, iterations=4)
     test_map = test_map.astype('int')
+    
+    # # Smaller test map
+    # test_map = np.zeros((100,50))
+    # # Boundaries
+    # test_map[[0,-1],:] = 1
+    # test_map[:,[0,-1]] = 1
+    # # Horizontal walls
+    # test_map[0:50, [15,35]] = 1
+    # test_map[80:, [15,35]] = 1
+    # # Thicken
+    # test_map = ndimage.binary_dilation(test_map, iterations=3)
+    # test_map = test_map.astype('int')
 
+    # Test PGM
+    # file = '/home/jsonglaptop/catkin_ws/src/robosar_navigation/maps/scott_hall_PR4.pgm'
+    file = '/home/jsonglaptop/catkin_ws/src/robosar_navigation/maps/willow-full.pgm'
+    test_map = read_pgm(file)
     # Plot
-    # plot_map(test_map)
+    plot_map(test_map)
+    plt.show()
+
+    """ Preprocessing """
+    # Close operation
+    # test_map = ndimage.morphology.binary_closing(test_map, iterations=10).astype(np.float64) # scott_hall_PR4
+    test_map = ndimage.morphology.binary_closing(test_map, iterations=3).astype(np.float64)
+    plot_map(test_map)
+    plt.show()
+
+    # Smoothing
+    # test_map = (ndimage.gaussian_filter(test_map,2)>0.1).astype('int')
+    test_map = (ndimage.gaussian_filter(test_map,1)>0.1).astype('int')
+    plot_map(test_map)
+    plt.show()
 
     # Turn OGM into FAM
     test_map = np.logical_not(test_map)*1
