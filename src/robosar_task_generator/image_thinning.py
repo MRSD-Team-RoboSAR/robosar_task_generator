@@ -51,9 +51,9 @@ def get_boundary_pixels(fa_map):
     corner_pixels = corner_pixels[1:]
     return boundary_pixels, edge_pixels, corner_pixels
 
-def check_neighbours(fa_map):
+def check_neighbours(fa_map, coords):
     """
-    Takes in Free Area Map and produces list of points that have 2, 3, 4 contiguous neighbours; also list of non-skeletal pixels
+    Takes in Free Area Map and produces list of points in coords (nx2) that have 2, 3, 4 contiguous neighbours; also list of non-skeletal pixels
     For FAM, free areas (foreground pixels) should have value 1; occupied areas (background pixels) should have value 0
     """
     kernel = np.array([
@@ -79,18 +79,17 @@ def check_neighbours(fa_map):
     S4 = []
     Sns = []
     fa_map_weight = ndimage.correlate(fa_map, kernel)
-    for x in range(0,fa_map.shape[0]):
-        for y in range(0,fa_map.shape[1]):
-            cur_weight = fa_map_weight[x,y]
-            # Check if in S2, S3, S4 or Sns
-            if(S2_weights.count(cur_weight)):
-                S2.append([x,y])
-            if(S3_weights.count(cur_weight)):
-                S3.append([x,y])
-            if(S4_weights.count(cur_weight)):
-                S4.append([x,y])
-            if(Sns_weights.count(cur_weight)):
-                Sns.append([x,y])
+    for x,y in coords:
+        cur_weight = fa_map_weight[x,y]
+        # Check if in S2, S3, S4 or Sns
+        if(S2_weights.count(cur_weight)):
+            S2.append([x,y])
+        elif(S3_weights.count(cur_weight)):
+            S3.append([x,y])
+        elif(S4_weights.count(cur_weight)):
+            S4.append([x,y])
+        elif(Sns_weights.count(cur_weight)):
+            Sns.append([x,y])
     S2 = np.array(S2)
     S3 = np.array(S3)
     S4 = np.array(S4)
@@ -111,50 +110,71 @@ def image_thinning(fa_map):
     Creates RAGVD from Free Area Map
     Free Area Map is binary; consists only of 0 and 1
     """
-    # Compute boundary pixels
-    first_time = True
-    for x in range(1,fa_map.shape[0]-1):
-        for y in range(1,fa_map.shape[1]-1):
-            for x_offset in range(-1,2):
-                for y_offset in range(-1,2):
-                    if(x_offset == 0 and y_offset == 0):
-                        continue
-                    x_cur = x+x_offset
-                    y_cur = y+y_offset
-                    pn = fa_map[x_cur, y_cur]
-                    if(pn == 1):
-                        if(first_time):
-                            first_time = False
-                            B = np.array([x_cur,y_cur]).reshape((1,2))
-                        elif(not([x_cur, y_cur] in B.tolist())):
-                            B = np.vstack((B, np.array([x_cur,y_cur]).reshape((1,2))))
-    # for x in range(0, fa_map.shape[0]):
-    #     for y in range(0, fa_map.shape[1]):
-    print('nop')
+    ogm = np.logical_not(fa_map)*1
+    fa_map_copy = np.copy(fa_map)
+    isdeleted = True
+    i = 0
+    while(isdeleted):
+        i += 1
+        print("iter: ", i)
+        isdeleted = False
+        # Compute boundary, edge and corner pixels
+        boundary_pixels, edge_pixels, corner_pixels = get_boundary_pixels(fa_map_copy)
+        print("Num boundary points: ", boundary_pixels.shape[0])
+        # Check against S2, S3, S4, Sns
+        S2, S3, S4, Sns = check_neighbours(fa_map_copy, boundary_pixels)
+        # Combine sets
+        S = np.vstack((S2.reshape((-1,2)), S3.reshape((-1,2)), S4.reshape((-1,2)), Sns.reshape((-1,2)))).astype('int')
+        # S = Sns
+        plot_map(ogm,'k')
+        plot_map(fa_map_copy,'r')
+        plt.scatter(S[:,0],S[:,1],color='g')
+        plt.show()
+        print("Num points to zero: ", S.shape[0])
+        if(S.shape[0]):
+            isdeleted = True
+            fa_map_copy[S[:,0],S[:,1]] = 0
+    plot_map(fa_map_copy)
+    plt.show()
 
 
 if __name__ == "__main__":
-    # Generate map; map uses (x,y) not (row,col)
-    test_map = np.zeros((300, 400))
+    # # Generate map; map uses (x,y) not (row,col)
+    # test_map = np.zeros((300, 400))
+    # # Boundaries
+    # test_map[[0,-1],:] = 1
+    # test_map[:,[0,-1]] = 1
+    # # Horizontal walls
+    # test_map[75:125, [100,200,300]] = 1
+    # test_map[175:, [100,200,300]] = 1
+    # # Vertical walls
+    # test_map[[125,175], 75:125] = 1
+    # test_map[[125,175], 175:225] = 1
+    # test_map[[125,175], 275:325] = 1
+    # # Thicken
+    # test_map = ndimage.binary_dilation(test_map, iterations=4)
+    # test_map = test_map.astype('int')
+    
+    # Smaller test map
+    test_map = np.zeros((100,50))
     # Boundaries
     test_map[[0,-1],:] = 1
     test_map[:,[0,-1]] = 1
     # Horizontal walls
-    test_map[75:125, [100,200,300]] = 1
-    test_map[175:, [100,200,300]] = 1
-    # Vertical walls
-    test_map[[125,175], 75:125] = 1
-    test_map[[125,175], 175:225] = 1
-    test_map[[125,175], 275:325] = 1
+    test_map[0:50, [15,35]] = 1
+    test_map[80:, [15,35]] = 1
     # Thicken
-    test_map = ndimage.binary_dilation(test_map, iterations=4)
+    test_map = ndimage.binary_dilation(test_map, iterations=3)
     test_map = test_map.astype('int')
+
+    # Plot
+    # plot_map(test_map)
+
     # Turn OGM into FAM
     test_map = np.logical_not(test_map)*1
     # Plot map
-    # plt.imshow(test_map.T, cmap="Greys")
-    # plt.title("Test map")
-    # plt.show()
-    check_neighbours(test_map)
-    get_boundary_pixels(test_map)
+
+    # Test
+    # check_neighbours(test_map, coords)
+    # get_boundary_pixels(test_map)
     image_thinning(test_map)
