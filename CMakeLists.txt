@@ -163,7 +163,6 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   scripts/task_generator_node.py
-  scripts/task_generator_auto_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
