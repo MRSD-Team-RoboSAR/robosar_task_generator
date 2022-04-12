@@ -32,9 +32,9 @@ def publish_rviz_marker(point):
     marker.pose.position.x = point[0]
     marker.pose.position.y = point[1]
 
-    marker.scale.x = 1
-    marker.scale.y = 1
-    marker.scale.z = 1
+    marker.scale.x = 0.1
+    marker.scale.y = 0.1
+    marker.scale.z = 0.1
 
     marker.color.r = 255
     marker.color.g = 0
