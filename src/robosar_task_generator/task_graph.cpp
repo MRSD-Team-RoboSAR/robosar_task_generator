@@ -21,6 +21,7 @@ inline bool AreSame(double a, double b)
 void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new_graph)
 {
   std::lock_guard<std::mutex> guard(mtx);
+  bool local_graph_update = false;
 
   // Go through all the markers in the array and add them to the graph
   for (auto marker : new_graph->markers)
@@ -35,7 +36,7 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new
         TaskVertex new_vertex(marker.id, marker.pose);
         V_.push_back(new_vertex);
         id_to_index_[marker.id] = V_.size() - 1;
-        new_data_rcvd_ = true;
+        local_graph_update = true;
       }
       else {
         // Check if there is a change in the pose
@@ -46,7 +47,7 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new
           graph_vertex.pose_ = marker.pose;
           graph_vertex.info_updated_ = true;
           V_[id_to_index_[marker.id]] = graph_vertex;
-          new_data_rcvd_ = true;
+          local_graph_update = true;
         }
       }
     }
@@ -58,9 +59,25 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new
   }
 
   ROS_WARN("New size of graph: %ld", V_.size());
+  // Inform main thread
+  if(local_graph_update) {
+    new_data_rcvd_ = true;
+    cv_.notify_one();
+  }
 
 }
 
 void TaskGraph::coverageTaskGenerator() {
   
+  while(ros::ok()) {
+    std::unique_lock<std::mutex> lk(mtx);
+    cv_.wait(lk, [this]{return new_data_rcvd_;});
+
+    ROS_WARN("Running coverage task generator");
+
+    
+
+    new_data_rcvd_ = false;
+    lk.unlock();
+  }
 }

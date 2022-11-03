@@ -8,6 +8,7 @@
 #include <queue>
 #include <vector>
 #include <thread>
+#include <condition_variable>
 
 // ROS
 #include <ros/ros.h>
@@ -43,6 +44,7 @@ private:
     std::mutex mtx;
     bool new_data_rcvd_;
     std::thread node_thread_;
+    std::condition_variable cv_;
 };
 
 #endif //TASK_GRAPH_H
