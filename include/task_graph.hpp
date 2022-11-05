@@ -17,7 +17,8 @@
 #include <nav_msgs/OccupancyGrid.h>
 
 
-#include "robosar_messages/task_graph.h"
+#include "robosar_messages/task_graph_getter.h"
+#include "robosar_messages/task_graph_setter.h"
 
 class TaskGraph {
 
@@ -43,8 +44,12 @@ public:
     };
 
 private:
-    bool taskGraphServiceCallback(robosar_messages::task_graph::Request &req,
-                                   robosar_messages::task_graph::Response &res);
+    bool taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
+                                   robosar_messages::task_graph_getter::Response &res);
+
+    bool taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
+                                      robosar_messages::task_graph_setter::Response &res);
+
     void incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new_graph);
     void coverageTaskGenerator();
     void initMarkers(void);
@@ -64,6 +69,7 @@ private:
     ros::Publisher marker_pub_;
     nav_msgs::OccupancyGrid mapData_;
     ros::ServiceServer task_graph_service_;
+    ros::ServiceServer task_setter_service_;
 
     std::map<int,int> id_to_index_;
     std::vector<TaskVertex> V_;
