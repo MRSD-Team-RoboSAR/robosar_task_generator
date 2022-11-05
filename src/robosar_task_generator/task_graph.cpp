@@ -37,6 +37,7 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
             res.task_ids.push_back(v.id_);
             res.points.push_back(v.pose_.position);
             res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
+            v.is_allocated_ = true;
         }
     }
 
@@ -119,6 +120,12 @@ void TaskGraph::initMarkers()
     marker_points_cov_visited.color.g = 0.0;
     marker_points_cov_visited.color.r = 255.0 / 255.0;
     marker_points_cov_visited.color.b = 255.0 / 255.0;
+
+    // marker for allocated coverage points
+    marker_points_cov_allocated = marker_points;
+    marker_points_cov_allocated.color.b = 0.0;
+    marker_points_cov_allocated.color.r = 255.0 / 255.0;
+    marker_points_cov_allocated.color.g = 255.0 / 255.0;
 
     // marker for coverage area
     marker_coverage_area = marker_points;
@@ -410,6 +417,7 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
  void TaskGraph::visualizeMarkers(void) {
 
     // visualization
+    marker_points_cov_allocated.points.clear();
     marker_points_cov_visited.points.clear();
     marker_points_coverage.points.clear();
     marker_coverage_area_array.markers.clear();
@@ -434,6 +442,9 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
             // Create coverage point marker
             if(j->is_visited_) {
                 marker_points_cov_visited.points.push_back(p);
+            }
+            else if(j->is_allocated_) {
+                marker_points_cov_allocated.points.push_back(p);
             }
             else {
                 marker_points_coverage.points.push_back(p);
