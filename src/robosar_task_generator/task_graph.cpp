@@ -18,9 +18,27 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map") {
     marker_coverage_area_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/task_graph/coverage_area", 10);
     marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/task_graph/points", 10);
 
+    // advertise task graph service
+    task_graph_service_ = nh_.advertiseService("task_graph", &TaskGraph::taskGraphServiceCallback, this);  
+
     initMarkers();
     ROS_INFO("Task Graphing!");
     node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
+}
+
+bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph::Request &req,
+                                   robosar_messages::task_graph::Response &res) {
+    // TODO
+    // Go through all the vertices and add unvisited coverage nodes to the response
+    for (auto &v : V_) {
+        if (v.is_coverage_node_ && !v.visited_) {
+            res.task_ids.push_back(v.id_);
+            res.points.push_back(v.pose_.position);
+            res.task_types.push_back(robosar_messages::task_graph::Response::COVERAGE);
+        }
+    }
+
+    return true;
 }
 
 // Subscribers callback functions---------------------------------------

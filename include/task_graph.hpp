@@ -12,11 +12,12 @@
 
 // ROS
 #include <ros/ros.h>
-#include "robosar_messages/pose_graph.h"
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 
+
+#include "robosar_messages/task_graph.h"
 
 class TaskGraph {
 
@@ -37,10 +38,13 @@ public:
         bool info_updated_;
         float info_gain_radius_;
         bool is_coverage_node_;
+        bool visited_;
 
     };
 
 private:
+    bool taskGraphServiceCallback(robosar_messages::task_graph::Request &req,
+                                   robosar_messages::task_graph::Response &res);
     void incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new_graph);
     void coverageTaskGenerator();
     void initMarkers(void);
@@ -59,6 +63,7 @@ private:
     ros::Publisher marker_coverage_area_pub_;
     ros::Publisher marker_pub_;
     nav_msgs::OccupancyGrid mapData_;
+    ros::ServiceServer task_graph_service_;
 
     std::map<int,int> id_to_index_;
     std::vector<TaskVertex> V_;
