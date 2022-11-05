@@ -30,7 +30,7 @@ public:
     public:
         TaskVertex() : pose_(), neighbors_() {}
         TaskVertex(int id, geometry_msgs::Pose pose, bool is_coverage_node) 
-                : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_) {}
+                : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
         int id_;
@@ -39,7 +39,7 @@ public:
         bool info_updated_;
         float info_gain_radius_;
         bool is_coverage_node_;
-        bool visited_;
+        bool is_visited_;
 
     };
 
@@ -60,7 +60,7 @@ private:
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
 
-    visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
+    visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage, marker_points_cov_visited;
     visualization_msgs::MarkerArray marker_coverage_area_array;
     ros::NodeHandle nh_;
     ros::Subscriber graph_sub_;
