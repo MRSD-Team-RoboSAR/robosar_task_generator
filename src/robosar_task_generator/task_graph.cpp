@@ -212,7 +212,7 @@ void TaskGraph::coverageTaskGenerator() {
 
         // Check if valid coverage point
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-        if(isValidCoveragePoint(vertex_pos, vertex.get_info_gain_radius() , vertex.id_)) {
+        if(vertex.is_allocated_ || vertex.is_visited_ || isValidCoveragePoint(vertex_pos, vertex.get_info_gain_radius() , vertex.id_)) {
           vertex.is_coverage_node_ = true;
         } else {
           vertex.is_coverage_node_ = false;
@@ -224,7 +224,7 @@ void TaskGraph::coverageTaskGenerator() {
 
     /**** ====================== Naive filtering : remove coverage points that are too close to each other ======== */
     for(auto& vertex : V_) {
-      if(vertex.is_coverage_node_) {
+      if(vertex.is_coverage_node_ && !vertex.is_visited_ && !vertex.is_allocated_) {
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
         filterCoveragePoints(vertex_pos, vertex.get_info_gain_radius(), vertex.id_);
       }
@@ -342,6 +342,12 @@ bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_r
         // keep the node with the largest radius
         // TODO can control per cent overlap
         if((info_radius > inter_node_dist || j->get_info_gain_radius() > inter_node_dist)) {
+
+            if(j->is_visited_ || j->is_allocated_) {
+                valid_node = false;
+                break;
+            }
+
             if(info_radius < j->get_info_gain_radius()) {
 
                 //std::cout<<j->get_info_gain_radius()<<" "<<info_radius<<" "<<" "<<inter_node_dist<<" "<<id<<" "<<j->id_<<std::endl;
