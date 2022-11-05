@@ -19,8 +19,8 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map") {
     marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/task_graph/points", 10);
 
     // advertise task graph services
-    task_graph_service_ = nh_.advertiseService("task_graph_getter", &TaskGraph::taskGraphServiceCallback, this); 
-    task_setter_service_ = nh_.advertiseService("task_graph_setter", &TaskGraph::taskGraphSetterServiceCallback, this);  
+    task_graph_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_getter", &TaskGraph::taskGraphServiceCallback, this); 
+    task_setter_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_setter", &TaskGraph::taskGraphSetterServiceCallback, this);  
 
     initMarkers();
     ROS_INFO("Task Graphing!");
@@ -392,7 +392,8 @@ void TaskGraph::filterCoveragePoints(std::pair<float, float> x_new, float info_r
    // Disable smaller coverage node
   if(closest_coverage_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS) {
     
-    if(info_radius < V_[id_to_index_[closest_coverage_node_id]].get_info_gain_radius()) {
+    if(V_[id_to_index_[closest_coverage_node_id]].is_allocated_ || V_[id_to_index_[closest_coverage_node_id]].is_visited_ ||
+         info_radius < V_[id_to_index_[closest_coverage_node_id]].get_info_gain_radius()) {
       V_[id_to_index_[id]].is_coverage_node_ = false;
     }
     else {
@@ -465,8 +466,9 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
             marker_coverage_area_array.markers.push_back(marker_coverage_area);
         }
     }
-
-    marker_pub_.publish(marker_points_coverage);
+    
+    marker_pub_.publish(marker_points_cov_allocated);
     marker_pub_.publish(marker_points_cov_visited);
+    marker_pub_.publish(marker_points_coverage);
     marker_coverage_area_pub_.publish(marker_coverage_area_array);
  }
