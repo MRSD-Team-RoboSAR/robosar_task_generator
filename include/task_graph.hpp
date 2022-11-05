@@ -30,7 +30,7 @@ public:
     public:
         TaskVertex() : pose_(), neighbors_() {}
         TaskVertex(int id, geometry_msgs::Pose pose, bool is_coverage_node) 
-                : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false) {}
+                : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(true) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
         int id_;

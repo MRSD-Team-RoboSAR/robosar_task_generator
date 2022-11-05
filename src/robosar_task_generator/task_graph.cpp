@@ -40,7 +40,6 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
             v.is_allocated_ = true;
         }
     }
-
     return true;
 }
 
@@ -467,8 +466,14 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
         }
     }
     
-    marker_pub_.publish(marker_points_cov_allocated);
-    marker_pub_.publish(marker_points_cov_visited);
-    marker_pub_.publish(marker_points_coverage);
+    if(marker_points_cov_visited.points.size() > 0) {
+        marker_pub_.publish(marker_points_cov_visited);
+    }
+    if(marker_points_cov_allocated.points.size() > 0) {
+        marker_pub_.publish(marker_points_cov_allocated);
+    }
+    if(marker_points_coverage.points.size() > 0) {
+        marker_pub_.publish(marker_points_coverage);
+    }
     marker_coverage_area_pub_.publish(marker_coverage_area_array);
  }
