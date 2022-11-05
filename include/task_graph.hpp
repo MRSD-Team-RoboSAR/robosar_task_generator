@@ -48,6 +48,7 @@ private:
     float informationGain(std::pair<float, float> &x);
     int gridValue(std::pair<float, float> &Xp);
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
+    void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;

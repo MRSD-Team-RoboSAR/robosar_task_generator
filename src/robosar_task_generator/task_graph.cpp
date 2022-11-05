@@ -5,7 +5,8 @@
 
 // Coverage planner parameters
 #define COV_MIN_INFO_GAIN_RADIUS_M 0.5
-#define COV_PERCENT_COVERAGE_OVERLAP 100 // TODO
+#define COV_PERCENT_COVERAGE_OVERLAP 0.75f // TODO
+#define COV_MIN_DIST_BETWEEN_COVERAGE_POINTS 1.0f // TODO
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0 // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1 , 0}, {0 , -1}, {0 , 1}, {1 , 0}};
 
@@ -150,19 +151,18 @@ void TaskGraph::coverageTaskGenerator() {
 
     ROS_WARN("Running coverage task generator");
 
-    // Iterate through all the vertices and update information gain
+    /** ==================== Iterate through all the vertices and update information gain ===================== */
     for(auto& vertex : V_) {
       if(vertex.info_updated_) {
         ROS_WARN("Vertex %d has been updated", vertex.id_);
 
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
         vertex.info_gain_radius_ = informationGain(vertex_pos);
-        ROS_INFO("%f ",vertex.info_gain_radius_);
         vertex.info_updated_ = false;
       }
     }
 
-    // Iterate again and update coverage points
+    /** ======================= Iterate again and update coverage points ================================ */
     for(auto& vertex : V_) {
 //      if(vertex.info_updated_) {
 
@@ -170,7 +170,6 @@ void TaskGraph::coverageTaskGenerator() {
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
         if(isValidCoveragePoint(vertex_pos, vertex.get_info_gain_radius() , vertex.id_)) {
           vertex.is_coverage_node_ = true;
-          std::cout<<"Coverage!"<<std::endl;
         } else {
           vertex.is_coverage_node_ = false;
         }
@@ -179,6 +178,15 @@ void TaskGraph::coverageTaskGenerator() {
 //      }
     }
 
+    /**** ====================== Naive filtering : remove coverage points that are too close to each other ======== */
+    for(auto& vertex : V_) {
+      if(vertex.is_coverage_node_) {
+        std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
+        filterCoveragePoints(vertex_pos, vertex.get_info_gain_radius(), vertex.id_);
+      }
+    }
+
+    // visualise coverage points
     visualizeMarkers();
 
     new_data_rcvd_ = false;
@@ -255,7 +263,7 @@ float TaskGraph::informationGain(std::pair<float, float> &x) {
  }
 
 
-bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id ) {    
+bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id)  {    
     
     // Local variables
     bool valid_node = true;
@@ -310,6 +318,38 @@ bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_r
         }
     }
     return valid_node;
+}
+
+void TaskGraph::filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id) {
+
+  // Find closest coverage node
+  float closest_coverage_node_dist = std::numeric_limits<float>::max();
+  int closest_coverage_node_id = -1;
+  for (auto k = V_.begin(); k != V_.end(); k++) {
+    if(k->id_ == id) {
+      continue;
+    }
+    if(k->is_coverage_node_) {
+      float inter_node_dist = Norm(k->pose_.position.x, k->pose_.position.y,
+                                    x_new.first, x_new.second); 
+      if(inter_node_dist<closest_coverage_node_dist) {
+        closest_coverage_node_dist = inter_node_dist;
+        closest_coverage_node_id = k->id_;
+      }
+    }
+  }
+
+   // Disable smaller coverage node
+  if(closest_coverage_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS) {
+    
+    if(info_radius < V_[id_to_index_[closest_coverage_node_id]].get_info_gain_radius()) {
+      V_[id_to_index_[id]].is_coverage_node_ = false;
+    }
+    else {
+      V_[id_to_index_[closest_coverage_node_id]].is_coverage_node_ = false;
+    }
+  }
+
 }
 
  // gridValue function
