@@ -158,12 +158,13 @@ void TaskGraph::coverageTaskGenerator() {
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
         vertex.info_gain_radius_ = informationGain(vertex_pos);
         ROS_INFO("%f ",vertex.info_gain_radius_);
+        vertex.info_updated_ = false;
       }
     }
 
     // Iterate again and update coverage points
     for(auto& vertex : V_) {
-      if(vertex.info_updated_) {
+//      if(vertex.info_updated_) {
 
         // Check if valid coverage point
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
@@ -175,7 +176,7 @@ void TaskGraph::coverageTaskGenerator() {
         }
 
         vertex.info_updated_ = false;
-      }
+//      }
     }
 
     visualizeMarkers();
@@ -258,7 +259,7 @@ bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_r
     
     // Local variables
     bool valid_node = true;
-    std::vector<int> to_remove;
+    std::vector<int> to_remove_indices;
 
     // parameter check
     if(info_radius < COV_MIN_INFO_GAIN_RADIUS_M) {
@@ -269,13 +270,16 @@ bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_r
     for (auto j = V_.begin(); j != V_.end(); j++) {
 
         // Dont compare with yourself
-        if(j->id_ == id)
+        if(j->id_ == id) {
+             ind++;
             continue;
+        }
 
-        // eliminate node which is more than 2*info_radius away from x_new
+        // eliminate node which is more than info_radius away from x_new
         float max_info_radius = std::max(info_radius, j->get_info_gain_radius());
-        if(fabs(x_new.first-j->pose_.position.x) > 2*max_info_radius 
-            || fabs(x_new.second-j->pose_.position.y) > 2*max_info_radius) {
+        if(fabs(x_new.first-j->pose_.position.x) > max_info_radius 
+            || fabs(x_new.second-j->pose_.position.y) > max_info_radius) {
+            ind++;
             continue;
         }
 
@@ -288,12 +292,12 @@ bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_r
         if((info_radius > inter_node_dist || j->get_info_gain_radius() > inter_node_dist)) {
             if(info_radius < j->get_info_gain_radius()) {
 
-                std::cout<<j->get_info_gain_radius()<<" "<<info_radius<<std::endl;
+                //std::cout<<j->get_info_gain_radius()<<" "<<info_radius<<" "<<" "<<inter_node_dist<<" "<<id<<" "<<j->id_<<std::endl;
                 valid_node = false;
                 break;
             }
             else {
-                to_remove.push_back(ind);
+                to_remove_indices.push_back(ind);
             }
         }
 
@@ -301,7 +305,7 @@ bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_r
     }
 
     if(valid_node) {
-        for (int id : to_remove) {
+        for (int ind : to_remove_indices) {
             V_[ind].is_coverage_node_ = false;
         }
     }
