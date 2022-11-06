@@ -576,3 +576,11 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
   return nearest_vertex;
 
  }
+
+std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std::pair<float,float> x_rand) {
+  int nearest_id = rrt_.nearest(pose_.position.x, pose_.position.y);
+  std::pair<float, float> x_nearest = rrt_.get_node(nearest_id)->get_coord();
+  std::pair<float, float> x_new = Steer(x_nearest, x_rand, 1.0);
+  auto output = std::make_tuple(nearest_id, x_new);
+  return output;
+}

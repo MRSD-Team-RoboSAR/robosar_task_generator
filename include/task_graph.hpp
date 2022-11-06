@@ -37,7 +37,7 @@ public:
             : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false), rrt_(pose_) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
-        void steerVertex(std::pair<float,float> x_rand){};
+        std::tuple<int, std::pair<float, float>> steerVertex(std::pair<float,float> x_rand);
         int id_;
         geometry_msgs::Pose pose_;
         std::vector<int> neighbors_;

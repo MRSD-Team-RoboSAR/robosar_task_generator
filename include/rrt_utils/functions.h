@@ -23,6 +23,8 @@ public:
 // Norm function prototype
 float Norm(float x1, float y1, float x2, float y2);
 
+std::pair<float, float> Steer(std::pair<float, float> &x_nearest, std::pair<float, float> &x_rand, float eta);
+
 // sign function prototype
 float sign(float);
 

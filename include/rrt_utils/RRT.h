@@ -166,6 +166,27 @@ public:
         return;
     }
 
+    std::pair<float, float> steer(std::pair<float, float> &x_nearest, std::pair<float, float> &x_rand, float eta)
+    {
+        std::pair<float, float> x_new;
+
+        if (Norm(x_nearest.first, x_nearest.second, x_rand.first, x_rand.second) <= eta)
+        {
+            x_new = x_rand;
+        }
+        else
+        {
+            float m = (x_rand.second - x_nearest.second) / (x_rand.first - x_nearest.first);
+            if (x_rand.first == x_nearest.first)
+            {
+                x_new = {x_nearest.first, x_nearest.second + eta};
+            }
+            x_new.first = (sign(x_rand.first - x_nearest.first)) * (sqrt((pow(eta, 2)) / ((pow(m, 2)) + 1))) + x_nearest.first;
+            x_new.second = m * (x_new.first - x_nearest.first) + x_nearest.second;
+        }
+        return x_new;
+    }
+
     std::unordered_map<int, std::shared_ptr<Node>> nodes_;
     int next_id_ = 0;
 
