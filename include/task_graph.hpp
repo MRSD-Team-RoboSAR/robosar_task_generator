@@ -19,6 +19,8 @@
 
 #include "robosar_messages/task_graph_getter.h"
 #include "robosar_messages/task_graph_setter.h"
+#include "functions.h"
+#include "mtrand.h"
 
 class TaskGraph {
 
@@ -60,7 +62,10 @@ private:
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
+
+    // RRT functions
     void expandRRT(const ros::TimerEvent&);
+    std::pair<float, float> pixelsToMap(int x_pixel, int y_pixel);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;
@@ -83,8 +88,9 @@ private:
     std::string frame_id_;
 
     // RRT related variables
-    double rrt_expansion_period_s;
+    double rrt_expansion_period_s_;
     ros::Timer rrt_expansion_timer_;
+    MTRand drand; // double in [0, 1) generator, already init
 };
 
 #endif //TASK_GRAPH_H

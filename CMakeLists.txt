@@ -126,6 +126,19 @@ include_directories(
   ${robosar_messages_INCLUDE_DIRS}
 )
 
+
+ ## Declare a C++ library
+ add_library(rrt_utils
+ src/${PROJECT_NAME}/rrt_utils/functions.cpp
+ src/${PROJECT_NAME}/rrt_utils/mtrand.cpp
+ )
+ 
+ ## Specify libraries to link a library or executable target against
+ target_link_libraries(rrt_utils
+ ${catkin_LIBRARIES}
+ )
+
+ 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
    src/${PROJECT_NAME}/task_graph.cpp
@@ -134,18 +147,8 @@ add_library(${PROJECT_NAME}
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
    ${catkin_LIBRARIES}
+   rrt_utils
  )
-
- ## Declare a C++ library
-add_library(rrt_utils
-src/${PROJECT_NAME}/rrt_utils/functions.cpp
-src/${PROJECT_NAME}/rrt_utils/mtrand.cpp
-)
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(rrt_utils
-${catkin_LIBRARIES}
-)
 
 
 

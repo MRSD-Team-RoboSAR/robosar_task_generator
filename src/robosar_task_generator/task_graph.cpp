@@ -2,7 +2,6 @@
 
 #include "task_graph.hpp"
 
-
 // Coverage planner parameters
 #define COV_MIN_INFO_GAIN_RADIUS_M 0.5
 #define COV_PERCENT_COVERAGE_OVERLAP 0.75f // TODO
@@ -10,7 +9,7 @@
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0 // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1 , 0}, {0 , -1}, {0 , 1}, {1 , 0}};
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s(1) {
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s_(1) {
     // TODO
 
     graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
@@ -23,11 +22,20 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_e
     task_setter_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_setter", &TaskGraph::taskGraphSetterServiceCallback, this);  
 
     initMarkers();
+
+    // Wait for map topic
+     ROS_INFO("Waiting for map topic!");
+    while (mapData_.data.size() < 1)
+    {
+        ros::spinOnce();
+        ros::Duration(0.1).sleep();
+    }
+
     ROS_INFO("Task Graphing!");
     node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
 
     // RRT expansion timer
-     rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s),boost::bind(&TaskGraph::expandRRT, this, _1));
+     rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_),boost::bind(&TaskGraph::expandRRT, this, _1));
 }
 
 
@@ -485,8 +493,36 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
     marker_coverage_area_pub_.publish(marker_coverage_area_array);
  }
 
+
+std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
+{
+    std::pair<float, float> map_coords;
+    float scale = mapData_.info.resolution;
+    float x_origin = mapData_.info.origin.position.x;
+    float y_origin = mapData_.info.origin.position.y;
+    map_coords = {x_pixel * scale + x_origin, y_pixel * scale + y_origin};
+    return map_coords;
+}
+
  void TaskGraph::expandRRT(const ros::TimerEvent&) {
 
+  // Cannot expand RRT if no pose graph
+  if(V_.size() == 0) {
+    return;
+  }
+
+  // Local variables
+  float xr, yr;
+  std::pair<float, float> x_rand, x_nearest, x_new;
+
+  // Sample free
+  int xp_r = drand() * mapData_.info.width;
+  int yp_r = drand() * mapData_.info.height;
+  std::pair<float, float> map_coords = pixelsToMap(xp_r, yp_r);
+  xr = map_coords.first + drand() * 0.2;
+  yr = map_coords.second + drand() * 0.2;
+
+  x_rand = {xr, yr};
 
 
  }
