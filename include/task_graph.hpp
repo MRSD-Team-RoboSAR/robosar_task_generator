@@ -16,23 +16,25 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/OccupancyGrid.h>
 
-
 #include "robosar_messages/task_graph_getter.h"
 #include "robosar_messages/task_graph_setter.h"
 #include "functions.h"
 #include "mtrand.h"
+#include "rrt_utils/RRT.h"
 
-class TaskGraph {
+class TaskGraph
+{
 
 public:
     TaskGraph();
     ~TaskGraph();
 
-    class TaskVertex {
+    class TaskVertex
+    {
     public:
         TaskVertex() : pose_(), neighbors_() {}
-        TaskVertex(int id, geometry_msgs::Pose pose, bool is_coverage_node) 
-                : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false) {}
+        TaskVertex(int id, geometry_msgs::Pose pose, bool is_coverage_node)
+            : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
         int id_;
@@ -43,17 +45,17 @@ public:
         bool is_coverage_node_;
         bool is_visited_;
         bool is_allocated_;
-
+        RRT rrt_;
     };
 
 private:
     bool taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
-                                   robosar_messages::task_graph_getter::Response &res);
+                                  robosar_messages::task_graph_getter::Response &res);
 
     bool taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
-                                      robosar_messages::task_graph_setter::Response &res);
+                                        robosar_messages::task_graph_setter::Response &res);
 
-    void incomingGraph(const visualization_msgs::MarkerArrayConstPtr& new_graph);
+    void incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new_graph);
     void coverageTaskGenerator();
     void initMarkers(void);
     void visualizeMarkers(void);
@@ -79,7 +81,7 @@ private:
     ros::ServiceServer task_setter_service_;
     std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_;
 
-    std::map<int,int> id_to_index_;
+    std::map<int, int> id_to_index_;
     std::vector<TaskVertex> V_;
     std::mutex mtx;
     bool new_data_rcvd_;
@@ -93,4 +95,4 @@ private:
     MTRand drand; // double in [0, 1) generator, already init
 };
 
-#endif //TASK_GRAPH_H
+#endif // TASK_GRAPH_H
