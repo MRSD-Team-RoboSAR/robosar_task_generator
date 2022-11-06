@@ -61,7 +61,7 @@ private:
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
 
-    visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage, marker_points_cov_visited, marker_points_cov_allocated;
+    visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;
     ros::NodeHandle nh_;
     ros::Subscriber graph_sub_;
@@ -71,6 +71,7 @@ private:
     nav_msgs::OccupancyGrid mapData_;
     ros::ServiceServer task_graph_service_;
     ros::ServiceServer task_setter_service_;
+    std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_;
 
     std::map<int,int> id_to_index_;
     std::vector<TaskVertex> V_;
