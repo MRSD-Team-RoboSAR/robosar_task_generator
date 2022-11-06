@@ -524,5 +524,24 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
 
   x_rand = {xr, yr};
 
+  // find nearest taskgraph vertex
+  TaskVertex* vertexPtr = findNearestVertex(x_rand);
+
+  vertexPtr->steerVertex(x_rand);
+
+
+ }
+
+ TaskGraph::TaskVertex* TaskGraph::findNearestVertex(std::pair<float, float> &x_rand) {
+  float min_dist = 1000000;
+  TaskVertex* nearest_vertex = NULL;
+  for (auto j = V_.begin(); j != V_.end(); j++) {
+    float dist = Norm(j->pose_.position.x, j->pose_.position.y, x_rand.first, x_rand.second);
+    if(dist < min_dist) {
+      min_dist = dist;
+      nearest_vertex = &(*j);
+    }
+  }
+  return nearest_vertex;
 
  }
