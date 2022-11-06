@@ -5,14 +5,20 @@
 #include <queue>
 #include <unordered_map>
 
-#include "ros/ros.h"
+#include <ros/ros.h>
+#include <geometry_msgs/Pose.h>
+
 #include "functions.h"
 #include "Node.h"
 
 class RRT
 {
 public:
-    RRT(){};
+    RRT(geometry_msgs::Pose root_pose) : root_pose_(root_pose)
+    {
+        std::shared_ptr<Node> root_node = add_node(root_pose_.position.x, root_pose_.position.y, -1);
+        root_node->set_root();
+    };
     ~RRT(){};
 
     std::shared_ptr<Node> get_node(int id)
@@ -25,13 +31,23 @@ public:
         return nodes_[id];
     }
 
-    void add_node(float x, float y, int parent)
+    std::shared_ptr<Node> add_node(float x, float y, int parent)
     {
-        nodes_[next_id_] = std::make_shared<Node>(x, y, next_id_, parent);
+        std::pair<float, float> rel = relative_from_global(x, y);
+        nodes_[next_id_] = std::make_shared<Node>(x, y, rel.first, rel.second, next_id_, parent);
         auto parent_node = get_node(parent);
         if (parent_node)
             parent_node->add_child(next_id_);
         next_id_++;
+        return nodes_[next_id_];
+    }
+
+    std::pair<float, float> relative_from_global(float x, float y)
+    {
+        float root_x = root_pose_.position.x;
+        float root_y = root_pose_.position.y;
+        std::pair<float, float> rel = std::make_pair<float, float>(x - root_x, y - root_y);
+        return rel;
     }
 
     void remove_node(int id)
@@ -46,7 +62,7 @@ public:
         // A leaf node
         if (children.size() == 0)
         {
-            if (curr_node->get_parent() != -1)
+            if (!curr_node->is_root())
             {
                 auto parent = get_node(curr_node->get_parent());
                 parent->remove_child(id);
@@ -117,7 +133,7 @@ public:
                     pq.push({dist[neighbor], neighbor});
                 }
             }
-            if (node->get_parent() != -1)
+            if (!node->is_root())
             {
                 int parent_id = node->get_parent();
                 float weight = Norm(node->get_x(), node->get_y(), get_node(parent_id)->get_x(), get_node(parent_id)->get_y());
@@ -133,6 +149,9 @@ public:
 
     std::unordered_map<int, std::shared_ptr<Node>> nodes_;
     int next_id_ = 0;
+
+private:
+    geometry_msgs::Pose root_pose_;
 };
 
 #endif // RRT_H
