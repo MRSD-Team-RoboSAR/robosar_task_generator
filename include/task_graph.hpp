@@ -60,6 +60,7 @@ private:
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
+    void expandRRT(const ros::TimerEvent&);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;
@@ -80,6 +81,10 @@ private:
     std::thread node_thread_;
     std::condition_variable cv_;
     std::string frame_id_;
+
+    // RRT related variables
+    double rrt_expansion_period_s;
+    ros::Timer rrt_expansion_timer_;
 };
 
 #endif //TASK_GRAPH_H

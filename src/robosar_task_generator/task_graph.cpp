@@ -10,7 +10,7 @@
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0 // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1 , 0}, {0 , -1}, {0 , 1}, {1 , 0}};
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map") {
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s(1) {
     // TODO
 
     graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
@@ -25,6 +25,9 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map") {
     initMarkers();
     ROS_INFO("Task Graphing!");
     node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
+
+    // RRT expansion timer
+     rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s),boost::bind(&TaskGraph::expandRRT, this, _1));
 }
 
 
@@ -480,4 +483,10 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
         marker_pub_.publish(marker_points_coverage);
     }
     marker_coverage_area_pub_.publish(marker_coverage_area_array);
+ }
+
+ void TaskGraph::expandRRT(const ros::TimerEvent&) {
+
+
+
  }
