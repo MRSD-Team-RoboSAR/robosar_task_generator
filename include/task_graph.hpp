@@ -32,9 +32,9 @@ public:
     class TaskVertex
     {
     public:
-        TaskVertex() : pose_(), neighbors_() {}
+        TaskVertex() : pose_(), neighbors_(), rrt_() {}
         TaskVertex(int id, geometry_msgs::Pose pose, bool is_coverage_node)
-            : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false) {}
+            : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false), rrt_(pose_) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
         int id_;
@@ -66,7 +66,7 @@ private:
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
 
     // RRT functions
-    void expandRRT(const ros::TimerEvent&);
+    void expandRRT(const ros::TimerEvent &);
     std::pair<float, float> pixelsToMap(int x_pixel, int y_pixel);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;

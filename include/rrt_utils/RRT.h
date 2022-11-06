@@ -14,6 +14,7 @@
 class RRT
 {
 public:
+    RRT(){};
     RRT(geometry_msgs::Pose root_pose) : root_pose_(root_pose)
     {
         std::shared_ptr<Node> root_node = add_node(root_pose_.position.x, root_pose_.position.y, -1);
