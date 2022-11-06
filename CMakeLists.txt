@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   robosar_messages
+  nav_msgs
+  geometry_msgs
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -117,15 +120,21 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
   ${robosar_messages_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/robosar_task_generator.cpp
-# )
+add_library(${PROJECT_NAME}
+   src/${PROJECT_NAME}/task_graph.cpp
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME}
+   ${catkin_LIBRARIES}
+ )
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -135,7 +144,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/robosar_task_generator_node.cpp)
+add_executable(robosar_task_graph_node src/robosar_task_generator/robosar_task_graph_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -148,9 +157,10 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(robosar_task_graph_node
+   ${catkin_LIBRARIES}
+   ${PROJECT_NAME}
+ )
 
 #############
 ## Install ##
