@@ -14,11 +14,11 @@
 class RRT
 {
 public:
-    RRT(){};
+    RRT() : root_pose_(){};
     RRT(geometry_msgs::Pose root_pose) : root_pose_(root_pose)
     {
-        std::shared_ptr<Node> root_node = add_node(root_pose_.position.x, root_pose_.position.y, -1);
-        root_node->set_root();
+        root_node_ = add_node(root_pose_.position.x, root_pose_.position.y, -1);
+        root_node_->set_root();
     };
     ~RRT(){};
 
@@ -41,14 +41,6 @@ public:
             parent_node->add_child(next_id_);
         next_id_++;
         return nodes_[next_id_];
-    }
-
-    std::pair<float, float> relative_from_global(float x, float y)
-    {
-        float root_x = root_pose_.position.x;
-        float root_y = root_pose_.position.y;
-        std::pair<float, float> rel = std::make_pair<float, float>(x - root_x, y - root_y);
-        return rel;
     }
 
     void remove_node(int id)
@@ -148,11 +140,38 @@ public:
         return dist[dest];
     }
 
+    std::pair<float, float> relative_from_global(float x, float y)
+    {
+        float root_x = root_pose_.position.x;
+        float root_y = root_pose_.position.y;
+        std::pair<float, float> rel = std::make_pair<float, float>(x - root_x, y - root_y);
+        return rel;
+    }
+
+    std::pair<float, float> global_from_relative(int node_id)
+    {
+        return {0.0, 0.0};
+    }
+
+    void update_rrt(geometry_msgs::Pose root_pose_new)
+    {
+        std::queue<std::shared_ptr<Node>> q;
+        q.push(root_node_);
+
+        // while (!q.empty())
+        // {
+
+        // }
+
+        return;
+    }
+
     std::unordered_map<int, std::shared_ptr<Node>> nodes_;
     int next_id_ = 0;
 
 private:
     geometry_msgs::Pose root_pose_;
+    std::shared_ptr<Node> root_node_ = NULL;
 };
 
 #endif // RRT_H
