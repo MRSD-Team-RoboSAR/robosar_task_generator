@@ -121,6 +121,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  include/rrt_utils
   ${catkin_INCLUDE_DIRS}
   ${robosar_messages_INCLUDE_DIRS}
 )
@@ -134,6 +135,18 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
    ${catkin_LIBRARIES}
  )
+
+ ## Declare a C++ library
+add_library(rrt_utils
+src/${PROJECT_NAME}/rrt_utils/functions.cpp
+src/${PROJECT_NAME}/rrt_utils/mtrand.cpp
+)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(rrt_utils
+${catkin_LIBRARIES}
+)
+
 
 
 ## Add cmake target dependencies of the library
