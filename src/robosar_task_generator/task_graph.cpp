@@ -15,7 +15,7 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_e
     graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
     map_sub_ = nh_.subscribe("/map", 100, &TaskGraph::mapCallBack, this);
     marker_coverage_area_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/task_graph/coverage_area", 10);
-    marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/task_graph/points", 10);
+    marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/task_graph/shapes", 10);
 
     // advertise task graph services
     task_graph_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_getter", &TaskGraph::taskGraphServiceCallback, this); 
@@ -214,13 +214,14 @@ void TaskGraph::coverageTaskGenerator() {
 
     ROS_WARN("Running coverage task generator");
 
-    /** ==================== Iterate through all the vertices and update information gain ===================== */
+    /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
     for(auto& vertex : V_) {
       if(vertex.info_updated_) {
         ROS_WARN("Vertex %d has been updated", vertex.id_);
 
         std::pair<float,float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
         vertex.info_gain_radius_ = informationGain(vertex_pos);
+        vertex.rrt_.update_rrt(vertex.pose_);
         vertex.info_updated_ = false;
       }
     }
@@ -493,6 +494,34 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
     marker_coverage_area_pub_.publish(marker_coverage_area_array);
  }
 
+ void TaskGraph::visualizeTree(void) {
+  
+    // visualization
+    marker_line.points.clear();
+
+    for (auto k = V_.begin(); k != V_.end(); k++)
+    {
+      for (auto j = k->rrt_.nodes_.begin(); j != k->rrt_.nodes_.end(); k++)
+      {
+          if (j->second->get_parent() == -1)
+              continue;
+          geometry_msgs::Point p;
+          p.x = j->second->get_x();
+          p.y = j->second->get_y();
+          p.z = 0.0;
+          marker_line.points.push_back(p);
+          p.x = k->rrt_.get_parent_node(j->second)->get_x();
+          p.y = k->rrt_.get_parent_node(j->second)->get_y();
+          p.z = 0.0;
+          marker_line.points.push_back(p);
+      }
+    }
+    
+    if(marker_line.points.size() > 0) {
+        marker_pub_.publish(marker_line);
+    }
+ }
+
 
 std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
 {
@@ -527,9 +556,11 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
   // find nearest taskgraph vertex
   TaskVertex* vertexPtr = findNearestVertex(x_rand);
 
+  // grow vertex tree
   vertexPtr->steerVertex(x_rand);
 
-
+  // visualise
+  visualizeTree();
  }
 
  TaskGraph::TaskVertex* TaskGraph::findNearestVertex(std::pair<float, float> &x_rand) {
