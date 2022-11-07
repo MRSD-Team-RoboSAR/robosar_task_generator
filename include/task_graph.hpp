@@ -18,6 +18,7 @@
 
 #include "robosar_messages/task_graph_getter.h"
 #include "robosar_messages/task_graph_setter.h"
+#include "robosar_messages/frontier_filter.h"
 #include "functions.h"
 #include "mtrand.h"
 #include "rrt_utils/RRT.h"
@@ -37,7 +38,7 @@ public:
             : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false), rrt_(pose_) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
-        std::tuple<int, std::pair<float, float>> steerVertex(std::pair<float,float> x_rand);
+        std::tuple<int, std::pair<float, float>> steerVertex(std::pair<float, float> x_rand, float eta);
         int id_;
         geometry_msgs::Pose pose_;
         std::vector<int> neighbors_;
@@ -56,6 +57,8 @@ private:
     bool taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
                                         robosar_messages::task_graph_setter::Response &res);
 
+    void callFrontierFilterService();
+
     void incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new_graph);
     void coverageTaskGenerator();
     void initMarkers(void);
@@ -65,7 +68,7 @@ private:
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
-    TaskVertex* findNearestVertex(std::pair<float, float> &x_rand); 
+    TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
 
     // RRT functions
     void expandRRT(const ros::TimerEvent &);
@@ -83,15 +86,20 @@ private:
     nav_msgs::OccupancyGrid mapData_;
     ros::ServiceServer task_graph_service_;
     ros::ServiceServer task_setter_service_;
+    ros::ServiceClient frontier_filter_client_;
     std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_, color_frontier_;
 
     std::map<int, int> id_to_index_;
     std::vector<TaskVertex> V_;
+    std::vector<geometry_msgs::Point> frontiers_;
     std::mutex mtx;
     bool new_data_rcvd_;
     std::thread node_thread_;
     std::condition_variable cv_;
     std::string frame_id_;
+    int filter_threshold_;
+    float eta_;
+    std::string map_topic_;
 
     // RRT related variables
     double rrt_expansion_period_s_;
