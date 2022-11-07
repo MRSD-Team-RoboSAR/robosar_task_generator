@@ -41,7 +41,7 @@ public:
 private:
     float x_;
     float y_;
-    tf2::Transform node_to_root_;
+    const tf2::Transform node_to_root_;
     int id_;
     const int parent_;
     bool is_root_ = false;
