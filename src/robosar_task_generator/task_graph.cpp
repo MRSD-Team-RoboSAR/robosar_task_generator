@@ -9,7 +9,7 @@
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0 // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1 , 0}, {0 , -1}, {0 , 1}, {1 , 0}};
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s_(1) {
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s_(1.0/50) {
     // TODO
 
     graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
@@ -154,6 +154,12 @@ void TaskGraph::initMarkers()
     color_visited_.g = 0.0;
     color_visited_.b = 255.0 / 255.0;
     color_visited_.a = 1.0;
+
+    color_frontier_.r = 0.0 / 255.0;
+    color_frontier_.g = 0.0;
+    color_frontier_.b = 0.0 / 255.0;
+    color_frontier_.a = 1.0;
+    
 
 }
 
@@ -573,9 +579,9 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
         p.x = x_nearest.first;
         p.y = x_nearest.second;
         p.z = 0.0;
-        marker_points.points.push_back(p);
-        marker_pub_.publish(marker_points);
-        marker_points.points.clear();
+        marker_points_coverage.points.push_back(p);
+        marker_points_coverage.colors.push_back(color_frontier_);
+        marker_pub_.publish(marker_points_coverage);
     }
     // valid connection
     else if (connection_type == 1)

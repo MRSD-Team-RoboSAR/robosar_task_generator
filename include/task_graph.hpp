@@ -83,7 +83,7 @@ private:
     nav_msgs::OccupancyGrid mapData_;
     ros::ServiceServer task_graph_service_;
     ros::ServiceServer task_setter_service_;
-    std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_;
+    std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_, color_frontier_;
 
     std::map<int, int> id_to_index_;
     std::vector<TaskVertex> V_;
