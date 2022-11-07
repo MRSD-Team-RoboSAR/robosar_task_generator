@@ -535,6 +535,8 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
 
  void TaskGraph::expandRRT(const ros::TimerEvent&) {
 
+  std::lock_guard<std::mutex> guard(mtx);
+  
   // Cannot expand RRT if no pose graph
   if(V_.size() == 0) {
     return;
@@ -542,7 +544,7 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
 
   // Local variables
   float xr, yr;
-  std::pair<float, float> x_rand, x_nearest, x_new;
+  std::pair<float, float> x_rand, x_nearest;
 
   // Sample free
   int xp_r = drand() * mapData_.info.width;
@@ -557,7 +559,29 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
   TaskVertex* vertexPtr = findNearestVertex(x_rand);
 
   // grow vertex tree
-  vertexPtr->steerVertex(x_rand);
+  auto [nearest_node_id, x_new] = vertexPtr->steerVertex(x_rand);
+
+  // Check if connection is valid
+  x_nearest = vertexPtr->rrt_.get_node(nearest_node_id)->get_coord();
+  int connection_type = ObstacleFree(x_nearest, x_new);
+
+    // frontier detected
+    if (connection_type == -1)
+    {
+        ROS_WARN("Frontier detected!");
+        geometry_msgs::Point p;
+        p.x = x_nearest.first;
+        p.y = x_nearest.second;
+        p.z = 0.0;
+        marker_points.points.push_back(p);
+        marker_pub_.publish(marker_points);
+        marker_points.points.clear();
+    }
+    // valid connection
+    else if (connection_type == 1)
+    {
+        vertexPtr->rrt_.add_node(x_new.first, x_new.second, nearest_node_id);
+    }
 
   // visualise
   visualizeTree();
@@ -579,8 +603,43 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
 
 std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std::pair<float,float> x_rand) {
   int nearest_id = rrt_.nearest(pose_.position.x, pose_.position.y);
+  assert(nearest_id!=-1);
   std::pair<float, float> x_nearest = rrt_.get_node(nearest_id)->get_coord();
   std::pair<float, float> x_new = Steer(x_nearest, x_rand, 1.0);
   auto output = std::make_tuple(nearest_id, x_new);
   return output;
 }
+
+char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew)
+{
+    float rez = float(mapData_.info.resolution) * .2;
+    float stepz = int(ceil(Norm(xnew.first, xnew.second, xnear.first, xnear.second)) / rez);
+    std::pair<float, float> xi = xnear;
+    char obs = 0;
+    char unk = 0;
+
+    geometry_msgs::Point p;
+    for (int c = 0; c < stepz; c++)
+    {
+        xi = Steer(xi, xnew, rez);
+
+        if (gridValue(xi) > 60)
+            obs = 1;
+        if (gridValue(xi) == -1)
+        {
+            unk = 1;
+            break;
+        }
+    }
+    char out = 0;
+    xnew = xi;
+    if (unk == 1)
+        out = -1;
+    if (obs == 1)
+        out = 0;
+    if (obs != 1 && unk != 1)
+        out = 1;
+
+    return out;
+}
+

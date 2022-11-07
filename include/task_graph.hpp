@@ -70,7 +70,8 @@ private:
     // RRT functions
     void expandRRT(const ros::TimerEvent &);
     std::pair<float, float> pixelsToMap(int x_pixel, int y_pixel);
-     void visualizeTree(void);
+    void visualizeTree(void);
+    char ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;
