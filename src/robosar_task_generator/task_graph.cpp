@@ -501,7 +501,7 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp) {
 
     for (auto k = V_.begin(); k != V_.end(); k++)
     {
-      for (auto j = k->rrt_.nodes_.begin(); j != k->rrt_.nodes_.end(); k++)
+      for (auto j = k->rrt_.nodes_.begin(); j != k->rrt_.nodes_.end(); j++)
       {
           if (j->second->get_parent() == -1)
               continue;
@@ -602,7 +602,7 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
  }
 
 std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std::pair<float,float> x_rand) {
-  int nearest_id = rrt_.nearest(pose_.position.x, pose_.position.y);
+  int nearest_id = rrt_.nearest(x_rand.first, x_rand.second);
   assert(nearest_id!=-1);
   std::pair<float, float> x_nearest = rrt_.get_node(nearest_id)->get_coord();
   std::pair<float, float> x_new = Steer(x_nearest, x_rand, 1.0);

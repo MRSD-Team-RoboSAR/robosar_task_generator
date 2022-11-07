@@ -7,8 +7,8 @@
 class Node
 {
 public:
-    Node(float x, float y, tf2::Transform node_to_root, int id, int parent_id)
-        : x_(x), y_(y), node_to_root_(node_to_root), id_(id), parent_(parent_id){};
+    Node(float x, float y, tf2::Transform root_to_node, int id, int parent_id)
+        : x_(x), y_(y), root_to_node_(root_to_node), id_(id), parent_(parent_id){};
     ~Node(){};
 
     bool is_root() { return is_root_; }
@@ -17,9 +17,9 @@ public:
     float get_y() { return y_; }
     void set_x(float x) { x_ = x; }
     void set_y(float y) { y_ = y; }
-    float get_rel_x() { return node_to_root_.getOrigin()[0]; }
-    float get_rel_y() { return node_to_root_.getOrigin()[1]; }
-    tf2::Transform get_rel_tf() {return node_to_root_;}
+    float get_rel_x() { return root_to_node_.getOrigin()[0]; }
+    float get_rel_y() { return root_to_node_.getOrigin()[1]; }
+    tf2::Transform get_rel_tf() {return root_to_node_;}
     int get_id() { return id_; }
     std::pair<float, float> get_coord() { return std::make_pair(x_, y_); }
 
@@ -42,7 +42,7 @@ public:
 private:
     float x_;
     float y_;
-    const tf2::Transform node_to_root_;
+    const tf2::Transform root_to_node_;
     int id_;
     const int parent_;
     bool is_root_ = false;

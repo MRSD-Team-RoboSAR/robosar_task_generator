@@ -15,15 +15,16 @@
 class RRT
 {
 public:
-    RRT() : root_to_map_(){};
+    RRT() : map_to_root_(){};
     RRT(geometry_msgs::Pose root_pose)
     {
         tf2::Quaternion quat_tf;
         tf2::convert(root_pose.orientation, quat_tf);
         tf2::Vector3 pos_tf;
         tf2::convert(root_pose.position, pos_tf);
-        root_to_map_ = tf2::Transform(quat_tf, pos_tf);
-        root_node_ = add_node(root_to_map_.getOrigin()[0], root_to_map_.getOrigin()[1], -1);
+        map_to_root_ = tf2::Transform(quat_tf, pos_tf);
+        root_node_ = add_node(map_to_root_.getOrigin()[0], map_to_root_.getOrigin()[1], -1);
+        assert(root_node_);
         root_node_->set_root();
     };
     ~RRT(){};
@@ -40,13 +41,12 @@ public:
 
     std::shared_ptr<Node> add_node(float x, float y, int parent)
     {
-        tf2::Transform node_to_root_tf = map_to_relative(x, y);
-        nodes_[next_id_] = std::make_shared<Node>(x, y, node_to_root_tf, next_id_, parent);
+        tf2::Transform root_to_node_tf = map_to_relative(x, y);
+        nodes_[next_id_] = std::make_shared<Node>(x, y, root_to_node_tf, next_id_, parent);
         auto parent_node = get_node(parent);
         if (parent_node)
             parent_node->add_child(next_id_);
-        next_id_++;
-        return nodes_[next_id_];
+        return nodes_[next_id_++];
     }
 
     void remove_node(int id)
@@ -148,16 +148,16 @@ public:
 
     tf2::Transform map_to_relative(float x, float y)
     {
-        tf2::Transform node_to_map = tf2::Transform(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(x, y, 0.0));
-        tf2::Transform node_to_root = root_to_map_.inverse() * node_to_map;
-        return node_to_root;
+        tf2::Transform map_to_node = tf2::Transform(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(x, y, 0.0));
+        tf2::Transform root_to_node = map_to_root_.inverse() * map_to_node;
+        return root_to_node;
     }
 
     void update_node_map_coords(int node_id)
     {
         std::shared_ptr<Node> node = get_node(node_id);
-        tf2::Transform node_to_root = node->get_rel_tf();
-        tf2::Transform map_to_node = (node_to_root * root_to_map_).inverse();
+        tf2::Transform root_to_node = node->get_rel_tf();
+        tf2::Transform map_to_node = map_to_root_ * root_to_node;
         node->set_x(map_to_node.getOrigin()[0]);
         node->set_y(map_to_node.getOrigin()[1]);
     }
@@ -168,7 +168,7 @@ public:
         tf2::convert(root_pose_new.orientation, quat_tf);
         tf2::Vector3 pos_tf;
         tf2::convert(root_pose_new.position, pos_tf);
-        root_to_map_ = tf2::Transform(quat_tf, pos_tf);
+        map_to_root_ = tf2::Transform(quat_tf, pos_tf);
 
         // traverse tree and update node map coords
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
@@ -183,7 +183,7 @@ public:
     int next_id_ = 0;
 
 private:
-    tf2::Transform root_to_map_;
+    tf2::Transform map_to_root_;
     std::shared_ptr<Node> root_node_ = NULL;
 };
 
