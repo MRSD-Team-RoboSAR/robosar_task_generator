@@ -425,8 +425,8 @@ void TaskGraph::filterCoveragePoints(std::pair<float, float> x_new, float info_r
 }
 
  // gridValue function
-int TaskGraph::gridValue(std::pair<float, float> &Xp)
-{
+int TaskGraph::gridValue(std::pair<float, float> &Xp) {
+  
     float resolution = mapData_.info.resolution;
     float Xstartx = mapData_.info.origin.position.x;
     float Xstarty = mapData_.info.origin.position.y;
@@ -536,7 +536,7 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
  void TaskGraph::expandRRT(const ros::TimerEvent&) {
 
   std::lock_guard<std::mutex> guard(mtx);
-  
+
   // Cannot expand RRT if no pose graph
   if(V_.size() == 0) {
     return;

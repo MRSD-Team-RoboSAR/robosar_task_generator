@@ -164,13 +164,17 @@ public:
 
     void update_rrt(geometry_msgs::Pose root_pose_new)
     {
-        std::queue<std::shared_ptr<Node>> q;
-        q.push(root_node_);
+        tf2::Quaternion quat_tf;
+        tf2::convert(root_pose_new.orientation, quat_tf);
+        tf2::Vector3 pos_tf;
+        tf2::convert(root_pose_new.position, pos_tf);
+        root_to_map_ = tf2::Transform(quat_tf, pos_tf);
 
-        // while (!q.empty())
-        // {
-
-        // }
+        // traverse tree and update node map coords
+        for (auto j = nodes_.begin(); j != nodes_.end(); j++)
+        {
+            update_node_map_coords(j->first);
+        }
 
         return;
     }
