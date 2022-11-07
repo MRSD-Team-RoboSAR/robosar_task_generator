@@ -153,9 +153,13 @@ public:
         return node_to_root;
     }
 
-    std::pair<float, float> relative_to_map(int node_id)
+    void update_node_map_coords(int node_id)
     {
-        return {0.0, 0.0};
+        std::shared_ptr<Node> node = get_node(node_id);
+        tf2::Transform node_to_root = node->get_rel_tf();
+        tf2::Transform node_to_map = node_to_root * root_to_map_;
+        node->set_x(node_to_map.getOrigin()[0]);
+        node->set_y(node_to_map.getOrigin()[1]);
     }
 
     void update_rrt(geometry_msgs::Pose root_pose_new)

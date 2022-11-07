@@ -19,6 +19,7 @@ public:
     void set_y(float y) { y_ = y; }
     float get_rel_x() { return node_to_root_.getOrigin()[0]; }
     float get_rel_y() { return node_to_root_.getOrigin()[1]; }
+    tf2::Transform get_rel_tf() {return node_to_root_;}
     int get_id() { return id_; }
     std::pair<float, float> get_coord() { return std::make_pair(x_, y_); }
 
