@@ -7,6 +7,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Pose.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "functions.h"
 #include "Node.h"
@@ -14,10 +15,15 @@
 class RRT
 {
 public:
-    RRT() : root_pose_(){};
-    RRT(geometry_msgs::Pose root_pose) : root_pose_(root_pose)
+    RRT() : root_to_map_(){};
+    RRT(geometry_msgs::Pose root_pose)
     {
-        root_node_ = add_node(root_pose_.position.x, root_pose_.position.y, -1);
+        tf2::Quaternion quat_tf;
+        tf2::convert(root_pose.orientation, quat_tf);
+        tf2::Vector3 pos_tf;
+        tf2::convert(root_pose.position, pos_tf);
+        root_to_map_ = tf2::Transform(quat_tf, pos_tf);
+        root_node_ = add_node(root_to_map_.getOrigin()[0], root_to_map_.getOrigin()[1], -1);
         root_node_->set_root();
     };
     ~RRT(){};
@@ -34,8 +40,8 @@ public:
 
     std::shared_ptr<Node> add_node(float x, float y, int parent)
     {
-        std::pair<float, float> rel = relative_from_global(x, y);
-        nodes_[next_id_] = std::make_shared<Node>(x, y, rel.first, rel.second, next_id_, parent);
+        tf2::Transform node_to_root_tf = map_to_relative(x, y);
+        nodes_[next_id_] = std::make_shared<Node>(x, y, node_to_root_tf, next_id_, parent);
         auto parent_node = get_node(parent);
         if (parent_node)
             parent_node->add_child(next_id_);
@@ -135,20 +141,19 @@ public:
                     dist[parent_id] = dist[node_id] + weight;
                     pq.push({dist[parent_id], parent_id});
                 }
-            }
+            }\
         }
         return dist[dest];
     }
 
-    std::pair<float, float> relative_from_global(float x, float y)
+    tf2::Transform map_to_relative(float x, float y)
     {
-        float root_x = root_pose_.position.x;
-        float root_y = root_pose_.position.y;
-        std::pair<float, float> rel = std::make_pair<float, float>(x - root_x, y - root_y);
-        return rel;
+        tf2::Transform node_to_map = tf2::Transform(tf2::Quaternion(0, 0, 0, 1), tf2::Vector3(x, y, 0.0));
+        tf2::Transform node_to_root = root_to_map_.inverse() * node_to_map;
+        return node_to_root;
     }
 
-    std::pair<float, float> global_from_relative(int node_id)
+    std::pair<float, float> relative_to_map(int node_id)
     {
         return {0.0, 0.0};
     }
@@ -166,32 +171,11 @@ public:
         return;
     }
 
-    std::pair<float, float> steer(std::pair<float, float> &x_nearest, std::pair<float, float> &x_rand, float eta)
-    {
-        std::pair<float, float> x_new;
-
-        if (Norm(x_nearest.first, x_nearest.second, x_rand.first, x_rand.second) <= eta)
-        {
-            x_new = x_rand;
-        }
-        else
-        {
-            float m = (x_rand.second - x_nearest.second) / (x_rand.first - x_nearest.first);
-            if (x_rand.first == x_nearest.first)
-            {
-                x_new = {x_nearest.first, x_nearest.second + eta};
-            }
-            x_new.first = (sign(x_rand.first - x_nearest.first)) * (sqrt((pow(eta, 2)) / ((pow(m, 2)) + 1))) + x_nearest.first;
-            x_new.second = m * (x_new.first - x_nearest.first) + x_nearest.second;
-        }
-        return x_new;
-    }
-
     std::unordered_map<int, std::shared_ptr<Node>> nodes_;
     int next_id_ = 0;
 
 private:
-    geometry_msgs::Pose root_pose_;
+    tf2::Transform root_to_map_;
     std::shared_ptr<Node> root_node_ = NULL;
 };
 
