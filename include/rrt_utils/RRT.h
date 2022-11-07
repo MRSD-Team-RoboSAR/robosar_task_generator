@@ -157,9 +157,9 @@ public:
     {
         std::shared_ptr<Node> node = get_node(node_id);
         tf2::Transform node_to_root = node->get_rel_tf();
-        tf2::Transform node_to_map = node_to_root * root_to_map_;
-        node->set_x(node_to_map.getOrigin()[0]);
-        node->set_y(node_to_map.getOrigin()[1]);
+        tf2::Transform map_to_node = (node_to_root * root_to_map_).inverse();
+        node->set_x(map_to_node.getOrigin()[0]);
+        node->set_y(map_to_node.getOrigin()[1]);
     }
 
     void update_rrt(geometry_msgs::Pose root_pose_new)
