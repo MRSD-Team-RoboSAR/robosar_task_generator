@@ -9,12 +9,13 @@
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s_(1.0 / 50)
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map")
 {
   // TODO
   std::string ns = ros::this_node::getName();
   ros::param::param<int>(ns + "/filter_threshold", filter_threshold_, 20);
   ros::param::param<float>(ns + "/eta", eta_, 1.0);
+  ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
   graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   map_sub_ = nh_.subscribe(map_topic_, 100, &TaskGraph::mapCallBack, this);
@@ -502,6 +503,7 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
   // map data:  100 occupied      -1 unknown       0 free
   float indx = (floor((Xp.second - Xstarty) / resolution) * width) + (floor((Xp.first - Xstartx) / resolution));
   int out;
+  assert(int(indx) < Data.size());
   out = Data[int(indx)];
   return out;
 }
@@ -629,10 +631,10 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   x_rand = {xr, yr};
 
   // find nearest taskgraph vertex
-  TaskVertex *vertexPtr = findNearestVertex(x_rand);
+  auto [vertexPtr, nearest_node_id] = findNearestVertex(x_rand);
 
   // grow vertex tree
-  auto [nearest_node_id, x_new] = vertexPtr->steerVertex(x_rand, eta_);
+  std::pair<float, float> x_new = vertexPtr->steerVertex(nearest_node_id, x_rand, eta_);
 
   // Check if connection is valid
   x_nearest = vertexPtr->rrt_.get_node(nearest_node_id)->get_coord();
@@ -641,7 +643,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   // frontier detected
   if (connection_type == -1)
   {
-    ROS_WARN("Frontier detected!");
+    // ROS_WARN("Frontier detected!");
     geometry_msgs::Point p;
     p.x = x_nearest.first;
     p.y = x_nearest.second;
@@ -668,30 +670,32 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   }
 }
 
-TaskGraph::TaskVertex *TaskGraph::findNearestVertex(std::pair<float, float> &x_rand)
+std::tuple<TaskGraph::TaskVertex *, int> TaskGraph::findNearestVertex(std::pair<float, float> &x_rand)
 {
-  float min_dist = 1000000;
+  float min_dist = std::numeric_limits<float>::max();
   TaskVertex *nearest_vertex = NULL;
+  int nearest_node_id = -1;
   for (auto j = V_.begin(); j != V_.end(); j++)
   {
-    float dist = Norm(j->pose_.position.x, j->pose_.position.y, x_rand.first, x_rand.second);
+    int curr_nearest_id = j->rrt_.nearest(x_rand.first, x_rand.second);
+    auto closest_node = j->rrt_.get_node(curr_nearest_id);
+    float dist = Norm(closest_node->get_x(), closest_node->get_y(), x_rand.first, x_rand.second);
     if (dist < min_dist)
     {
       min_dist = dist;
       nearest_vertex = &(*j);
+      nearest_node_id = curr_nearest_id;
     }
   }
-  return nearest_vertex;
+  return std::make_tuple(nearest_vertex, nearest_node_id);
 }
 
-std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std::pair<float, float> x_rand, float eta)
+std::pair<float, float> TaskGraph::TaskVertex::steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta)
 {
-  int nearest_id = rrt_.nearest(x_rand.first, x_rand.second);
-  assert(nearest_id != -1);
-  std::pair<float, float> x_nearest = rrt_.get_node(nearest_id)->get_coord();
+  assert(nearest_node_id != -1);
+  std::pair<float, float> x_nearest = rrt_.get_node(nearest_node_id)->get_coord();
   std::pair<float, float> x_new = Steer(x_nearest, x_rand, eta);
-  auto output = std::make_tuple(nearest_id, x_new);
-  return output;
+  return x_new;
 }
 
 char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew)
@@ -707,7 +711,7 @@ char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, fl
   {
     xi = Steer(xi, xnew, rez);
 
-    if (gridValue(xi) > 60)
+    if (gridValue(xi) > 70)
       obs = 1;
     if (gridValue(xi) == -1)
     {
