@@ -9,12 +9,13 @@
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), rrt_expansion_period_s_(1.0 / 50)
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map")
 {
   // TODO
   std::string ns = ros::this_node::getName();
   ros::param::param<int>(ns + "/filter_threshold", filter_threshold_, 20);
   ros::param::param<float>(ns + "/eta", eta_, 1.0);
+  ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
   graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   map_sub_ = nh_.subscribe(map_topic_, 100, &TaskGraph::mapCallBack, this);
