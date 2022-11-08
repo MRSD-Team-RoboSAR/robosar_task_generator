@@ -77,6 +77,38 @@ public:
         remove_node(id);
     }
 
+    void disable_node(int id)
+    {
+        if (nodes_.find(id) == nodes_.end())
+        {
+            ROS_WARN("Node ID %d does not exist, cannot disable.", id);
+            return;
+        }
+        auto curr_node = get_node(id);
+        if (curr_node->is_disabled()) {
+            ROS_WARN("Node ID %d is already disabled.", id);
+            return;
+        }
+        std::unordered_set<int> active_children = curr_node->get_active_children();
+        // A leaf node
+        if (active_children.size() == 0)
+        {
+            if (!curr_node->is_root())
+            {
+                auto parent = get_node(curr_node->get_parent());
+                parent->disable_child(id);
+            }
+            curr_node->set_disabled(true);
+            return;
+        }
+        // remove children
+        for (int child_id : active_children)
+        {
+            disable_node(child_id);
+        }
+        disable_node(id);
+    }
+
     std::shared_ptr<Node> get_parent_node(std::shared_ptr<Node> child)
     {
         return get_node(child->get_parent());

@@ -28,6 +28,7 @@ public:
     void add_child(int child)
     {
         children_.insert(child);
+        active_children_.insert(child);
     }
     void remove_child(int child)
     {
@@ -38,7 +39,16 @@ public:
         }
         children_.erase(child);
     }
+    void disable_child(int child) {
+        if (active_children_.find(child) == active_children_.end())
+        {
+            ROS_WARN("Child %d is already disabled.", child);
+            return;
+        }
+        active_children_.erase(child);
+    }
     std::unordered_set<int> get_children() { return children_; }
+    std::unordered_set<int> get_active_children() { return active_children_;}
     int get_parent() { return parent_; }
 
 private:
@@ -50,6 +60,7 @@ private:
     bool is_root_ = false;
     bool disabled_ = false;
     std::unordered_set<int> children_;
+    std::unordered_set<int> active_children_;
 };
 
 #endif // NODE_H

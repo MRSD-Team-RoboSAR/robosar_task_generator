@@ -509,6 +509,7 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
   // map data:  100 occupied      -1 unknown       0 free
   float indx = (floor((Xp.second - Xstarty) / resolution) * width) + (floor((Xp.first - Xstartx) / resolution));
   int out;
+  assert(int(indx) < Data.size());
   out = Data[int(indx)];
   return out;
 }
@@ -622,14 +623,14 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     return;
   }
 
-  if (prune_counter_ == 500)
-  {
-    ROS_INFO("Pruning");
-    for (auto &vertex : V_) {
-      pruneRRT(vertex.rrt_);
-    }
-    prune_counter_ = 0;
-  }
+  // if (prune_counter_ == 500)
+  // {
+  //   ROS_INFO("Pruning");
+  //   for (auto &vertex : V_) {
+  //     pruneRRT(vertex.rrt_);
+  //   }
+  //   prune_counter_ = 0;
+  // }
 
   // Local variables
   float xr, yr;
