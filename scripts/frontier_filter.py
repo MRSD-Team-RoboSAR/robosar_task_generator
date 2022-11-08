@@ -22,7 +22,6 @@ class FrontierFilter:
 
         # fetching all parameters
         ns = rospy.get_name()
-        self.map_topic = rospy.get_param("~map_topic", "/map")
         self.occ_threshold = rospy.get_param("~costmap_clearing_threshold", 70)
         self.info_threshold = rospy.get_param("~info_gain_threshold", 0.2)
         self.cluster_bandwidth = rospy.get_param("~cluster_bandwidth", 1.0)
@@ -47,14 +46,8 @@ class FrontierFilter:
             x = np.array([p.x, p.y])
             frontiers.append(x)
         frontiers = np.array(frontiers)
-
-        rospy.loginfo("Waiting for the map")
-        try:
-            map_msg = rospy.wait_for_message(self.map_topic, OccupancyGrid, timeout=None)
-            self.mapData = map_msg
-        except:
-            print("no map received.")
-            return frontier_filterResponse()
+        
+        self.mapData = req.map_data
 
         self.filter(frontiers)
         return frontier_filterResponse()

@@ -13,7 +13,7 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
 {
   // TODO
   initROSParams();
-  
+
   graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   map_sub_ = nh_.subscribe(map_topic_, 100, &TaskGraph::mapCallBack, this);
   marker_coverage_area_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/task_graph/coverage_area", 10);
@@ -93,6 +93,7 @@ void TaskGraph::callFrontierFilterService()
 {
   robosar_messages::frontier_filter srv;
   srv.request.frontiers = frontiers_;
+  srv.request.map_data = mapData_;
   if (frontier_filter_client_.call(srv))
   {
     ROS_INFO("Filtered frontiers.");
@@ -644,7 +645,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   x_rand = {xr, yr};
 
   // find nearest taskgraph vertex
-  TaskVertex *vertexPtr = findNearestVertex(x_rand);
+  TaskVertex* vertexPtr = findNearestVertex(x_rand);
 
   // grow vertex tree
   auto [nearest_node_id, x_new] = vertexPtr->steerVertex(x_rand, eta_);
