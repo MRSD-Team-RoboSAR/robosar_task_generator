@@ -96,7 +96,7 @@ void TaskGraph::callFrontierFilterService()
   srv.request.map_data = mapData_;
   if (frontier_filter_client_.call(srv))
   {
-    ROS_INFO("Filtered frontiers.");
+    ROS_DEBUG("Filtered frontiers.");
   }
   else
   {
@@ -715,7 +715,7 @@ std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std:
 char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew)
 {
   float rez = float(mapData_.info.resolution) * .2;
-  float stepz = int(ceil(Norm(xnew.first, xnew.second, xnear.first, xnear.second)) / rez);
+  int stepz = int(ceil(Norm(xnew.first, xnew.second, xnear.first, xnear.second)) / rez);
   std::pair<float, float> xi = xnear;
   char obs = 0;
   char unk = 0;
