@@ -75,6 +75,7 @@ private:
     std::pair<float, float> pixelsToMap(int x_pixel, int y_pixel);
     void visualizeTree(void);
     char ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew);
+    void pruneRRT(RRT &rrt);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;
@@ -105,6 +106,7 @@ private:
     double rrt_expansion_period_s_;
     ros::Timer rrt_expansion_timer_;
     MTRand drand; // double in [0, 1) generator, already init
+    int prune_counter_;
 };
 
 #endif // TASK_GRAPH_H

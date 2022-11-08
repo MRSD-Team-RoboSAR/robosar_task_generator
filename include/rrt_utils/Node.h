@@ -12,7 +12,9 @@ public:
     ~Node(){};
 
     bool is_root() { return is_root_; }
+    bool is_disabled() {return disabled_;}
     void set_root() { is_root_ = true; }
+    void set_disabled(bool disabled) {disabled_ = disabled;}
     float get_x() { return x_; }
     float get_y() { return y_; }
     void set_x(float x) { x_ = x; }
@@ -31,7 +33,7 @@ public:
     {
         if (children_.find(child) == children_.end())
         {
-            ROS_INFO("Child %d does not exist, cannot remove.", child);
+            ROS_WARN("Child %d does not exist, cannot remove.", child);
             return;
         }
         children_.erase(child);
@@ -46,6 +48,7 @@ private:
     int id_;
     const int parent_;
     bool is_root_ = false;
+    bool disabled_ = false;
     std::unordered_set<int> children_;
 };
 

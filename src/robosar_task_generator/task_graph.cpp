@@ -9,7 +9,7 @@
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
 std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map")
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {
   // TODO
   std::string ns = ros::this_node::getName();
@@ -616,6 +616,15 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     return;
   }
 
+  if (prune_counter_ == 500)
+  {
+    ROS_INFO("Pruning");
+    for (auto &vertex : V_) {
+      pruneRRT(vertex.rrt_);
+    }
+    prune_counter_ = 0;
+  }
+
   // Local variables
   float xr, yr;
   std::pair<float, float> x_rand, x_nearest;
@@ -642,7 +651,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   // frontier detected
   if (connection_type == -1)
   {
-    ROS_WARN("Frontier detected!");
+    // ROS_WARN("Frontier detected!");
     geometry_msgs::Point p;
     p.x = x_nearest.first;
     p.y = x_nearest.second;
@@ -667,6 +676,8 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     callFrontierFilterService();
     frontiers_.clear();
   }
+
+  prune_counter_++;
 }
 
 TaskGraph::TaskVertex *TaskGraph::findNearestVertex(std::pair<float, float> &x_rand)
@@ -726,4 +737,42 @@ char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, fl
     out = 1;
 
   return out;
+}
+
+void TaskGraph::pruneRRT(RRT &rrt)
+{
+  std::vector<int> to_remove;
+  for (auto j = rrt.nodes_.begin(); j != rrt.nodes_.end(); j++)
+  {
+    if (j->second->get_parent() == -1)
+      continue;
+    std::pair<float, float> x_child = j->second->get_coord();
+    std::pair<float, float> x_parent = rrt.get_parent_node(j->second)->get_coord();
+    char checking = ObstacleFree(x_parent, x_child);
+    if (checking == 0)
+    {
+      to_remove.push_back(j->first);
+    }
+  }
+  for (int id : to_remove)
+  {
+    if (id != 0) // never remove root node
+      rrt.remove_node(id);
+  }
+  // visualization
+  marker_line.points.clear();
+  for (auto j = rrt.nodes_.begin(); j != rrt.nodes_.end(); j++)
+  {
+    if (j->second->get_parent() == -1)
+      continue;
+    geometry_msgs::Point p;
+    p.x = j->second->get_x();
+    p.y = j->second->get_y();
+    p.z = 0.0;
+    marker_line.points.push_back(p);
+    p.x = rrt.get_parent_node(j->second)->get_x();
+    p.y = rrt.get_parent_node(j->second)->get_y();
+    p.z = 0.0;
+    marker_line.points.push_back(p);
+  }
 }

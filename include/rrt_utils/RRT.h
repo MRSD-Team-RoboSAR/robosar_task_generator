@@ -33,7 +33,7 @@ public:
     {
         if (nodes_.find(id) == nodes_.end())
         {
-            ROS_INFO("Node ID %d does not exist, cannot get.", id);
+            ROS_WARN("Node ID %d does not exist, cannot get.", id);
             return nullptr;
         }
         return nodes_[id];
@@ -53,7 +53,7 @@ public:
     {
         if (nodes_.find(id) == nodes_.end())
         {
-            ROS_INFO("Node ID %d does not exist, cannot remove.", id);
+            ROS_WARN("Node ID %d does not exist, cannot remove.", id);
             return;
         }
         auto curr_node = get_node(id);
@@ -87,11 +87,11 @@ public:
         float min = std::numeric_limits<float>::max();
         int min_index = -1;
         float temp;
-        // ROS_INFO("x: %f, y: %f", x, y);
+        // ROS_WARN("x: %f, y: %f", x, y);
 
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
         {
-            // ROS_INFO("node: %d, x: %f, y: %f", j->second->get_id(), j->second->get_x(), j->second->get_y());
+            // ROS_WARN("node: %d, x: %f, y: %f", j->second->get_id(), j->second->get_x(), j->second->get_y());
             temp = Norm(j->second->get_x(), j->second->get_y(), x, y);
             if (temp <= min)
             {
