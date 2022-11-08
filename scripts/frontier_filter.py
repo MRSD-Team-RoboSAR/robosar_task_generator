@@ -22,6 +22,7 @@ class FrontierFilter:
 
         # fetching all parameters
         ns = rospy.get_name()
+        self.map_topic = rospy.get_param("~map_topic", "/map")
         self.occ_threshold = rospy.get_param("~costmap_clearing_threshold", 70)
         self.info_threshold = rospy.get_param("~info_gain_threshold", 0.2)
         self.cluster_bandwidth = rospy.get_param("~cluster_bandwidth", 1.0)
@@ -47,7 +48,12 @@ class FrontierFilter:
             frontiers.append(x)
         frontiers = np.array(frontiers)
         
-        self.mapData = req.map_data
+        try:
+            map_msg = rospy.wait_for_message(self.map_topic, OccupancyGrid, timeout=None)
+            self.mapData = map_msg
+        except:
+            print("no map received.")
+            return frontier_filterResponse()
 
         self.filter(frontiers)
         return frontier_filterResponse()
@@ -84,7 +90,7 @@ class FrontierFilter:
         return False
 
     def check_edge_collision(self, xnear, xnew):
-        rez = float(self.mapData.info.resolution) * 0.2
+        rez = float(self.mapData.info.resolution)
         stepz = int(np.ceil(functions.Norm(xnew[0], xnew[1], xnear[0], xnear[1])) / rez)
         xi = xnear
         obs = 0
@@ -133,7 +139,7 @@ class FrontierFilter:
 
         arraypoints = PointArray()
 
-        rospy.loginfo("Starting filter")
+        # rospy.loginfo("Starting filter")
         centroids = []
         possible_frontiers = []
         labels = []

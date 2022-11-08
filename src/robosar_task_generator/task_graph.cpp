@@ -714,7 +714,7 @@ std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std:
 
 char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew)
 {
-  float rez = float(mapData_.info.resolution) * .2;
+  float rez = float(mapData_.info.resolution);
   int stepz = int(ceil(Norm(xnew.first, xnew.second, xnear.first, xnear.second)) / rez);
   std::pair<float, float> xi = xnear;
   char obs = 0;
