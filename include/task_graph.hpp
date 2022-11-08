@@ -69,6 +69,7 @@ private:
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
     TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
+    void initROSParams(void);
 
     // RRT functions
     void expandRRT(const ros::TimerEvent &);

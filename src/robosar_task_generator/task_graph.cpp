@@ -12,11 +12,8 @@ std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}
 TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {
   // TODO
-  std::string ns = ros::this_node::getName();
-  ros::param::param<int>(ns + "/filter_threshold", filter_threshold_, 20);
-  ros::param::param<float>(ns + "/eta", eta_, 1.0);
-  ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
-  ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
+  initROSParams();
+  
   graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   map_sub_ = nh_.subscribe(map_topic_, 100, &TaskGraph::mapCallBack, this);
   marker_coverage_area_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/task_graph/coverage_area", 10);
@@ -42,6 +39,14 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
 
   // RRT expansion timer
   rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_), boost::bind(&TaskGraph::expandRRT, this, _1));
+}
+
+void TaskGraph::initROSParams(void) {
+  std::string ns = ros::this_node::getName();
+  ros::param::param<int>(ns + "/filter_threshold", filter_threshold_, 20);
+  ros::param::param<float>(ns + "/eta", eta_, 1.0);
+  ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
+  ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
 }
 
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
