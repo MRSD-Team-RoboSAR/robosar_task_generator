@@ -12,6 +12,13 @@
 #include "functions.h"
 #include "Node.h"
 
+// Coverage planner parameters
+#define COV_MIN_INFO_GAIN_RADIUS_M 0.5
+#define COV_PERCENT_COVERAGE_OVERLAP 0.75f        // TODO
+#define COV_MIN_DIST_BETWEEN_COVERAGE_POINTS 1.0f // TODO
+#define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
+std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
+
 class RRT
 {
 public:
@@ -179,10 +186,170 @@ public:
         return;
     }
 
+    void update_coverage_nodes(void) {
+
+        // Mark all nodes as coverage nodes
+        for (auto j = nodes_.begin(); j != nodes_.end(); j++)
+        {
+            j->second->is_coverage_node_ = true;
+        }
+
+        // Iterate through all nodes and mark nodes that are not coverage nodes
+        for (auto j = nodes_.begin(); j != nodes_.end(); j++)
+        {
+            // if node is already marked as not a coverage node, skip
+           if(j->second->is_coverage_node_) {
+                // Check if valid coverage point
+                std::pair<float, float> node_pos = std::make_pair(j->second->get_x(), j->second->get_y());
+                if (j->second->is_allocated_ || j->second->is_visited_ ||   
+                        is_valid_coverage_node(node_pos, j->second->get_info_gain_radius(), j->second->get_id())) 
+                    {
+                        j->second->is_coverage_node_ = true;
+                        coverage_nodes_.push_back(j->second->get_id());
+                        // ROS_INFO("Vertex %d is a coverage point", vertex.id_);
+                    }
+                    else
+                    {
+                        j->second->is_coverage_node_ = false;
+                    }
+            }
+        }
+    }
+
+     /**** ====================== Naive filtering : remove coverage points that are too close to each other ======== */
+    void filter_coverage_nodes(void) {
+
+        coverage_nodes_.clear();
+        for (auto j = nodes_.begin(); j != nodes_.end(); j++) {
+           
+            if (j->second->is_coverage_node_)
+            {
+                std::pair<float, float> node_pos = std::make_pair(j->second->get_x(), j->second->get_y());
+                // A visited or allocated node is always a coverage node
+                // Check if node passes filter
+                if(j->second->is_visited_ || j->second->is_allocated_
+                 || filter_node_on_threshold(node_pos, j->second->get_info_gain_radius(), j->second->get_id())) {
+                    
+                    coverage_nodes_.push_back(j->second->get_id());
+                }
+               
+            }
+        }
+
+    }
+
+    std::vector<int> coverage_nodes_;
     std::unordered_map<int, std::shared_ptr<Node>> nodes_;
     int next_id_ = 0;
 
 private:
+
+    bool is_valid_coverage_node(std::pair<float, float> x_new, float info_radius, int id)
+    {
+
+        // Local variables
+        bool valid_node = true;
+        std::vector<int> to_remove_ids;
+
+        // parameter check
+        if (info_radius < COV_MIN_INFO_GAIN_RADIUS_M)
+        {
+            return false;
+        }
+
+        for (auto j = nodes_.begin(); j != nodes_.end(); j++)
+        {
+
+            // Dont compare with yourself
+            if (j->second->get_id() == id)
+            {
+                continue;
+            }
+
+            // eliminate node which is more than info_radius away from x_new
+            float max_info_radius = std::max(info_radius, j->second->get_info_gain_radius());
+            if (fabs(x_new.first - j->second->get_x()) > max_info_radius || fabs(x_new.second - j->second->get_y()) > max_info_radius)
+            {
+                continue;
+            }
+
+            // TODO should we check if it is a coverage node?
+            float inter_node_dist = Norm(j->second->get_x(), j->second->get_y(),
+                                        x_new.first, x_new.second);
+            // If there is an overlap (either of the centers is inside the other circle)
+            // keep the node with the largest radius
+            // TODO can control per cent overlap
+            if ((info_radius > inter_node_dist || j->second->get_info_gain_radius() > inter_node_dist))
+            {
+
+                if (j->second->is_visited_ || j->second->is_allocated_)
+                {
+                    valid_node = false;
+                    break;
+                }
+
+                if (info_radius < j->second->get_info_gain_radius())
+                {
+
+                    // std::cout<<j->get_info_gain_radius()<<" "<<info_radius<<" "<<" "<<inter_node_dist<<" "<<id<<" "<<j->id_<<std::endl;
+                    valid_node = false;
+                    break;
+                }
+                else
+                {
+                    to_remove_ids.push_back(j->second->get_id());
+                }
+            }
+
+        }
+
+        if (valid_node)
+        {
+            for (int id : to_remove_ids)
+            {
+                get_node(id)->is_coverage_node_ = false;
+            }
+        }
+        return valid_node;
+    }
+
+
+bool filter_node_on_threshold(std::pair<float, float> x_new, float info_radius, int id)
+{
+
+    bool result = true;
+    for (auto j = nodes_.begin(); j != nodes_.end(); j++) {
+
+        if (j->second->get_id() == id)
+        {
+            continue;
+        }
+        if (j->second->is_coverage_node_)
+        {
+            float inter_node_dist = Norm(j->second->get_x(), j->second->get_y(),
+                                        x_new.first, x_new.second);
+            if (inter_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS) {
+
+                // filter out smaller coverage node
+                if (j->second->is_allocated_ || j->second->is_visited_ || info_radius < j->second->get_info_gain_radius())
+                {
+                    get_node(id)->is_coverage_node_ = false;
+                    result = false;
+                    break;
+                }
+                else
+                {
+                    j->second->is_coverage_node_ = false;
+                }
+            }
+        }
+        
+
+    }
+    return result;
+}
+
+
     tf2::Transform map_to_root_;
     std::shared_ptr<Node> root_node_ = NULL;
 };

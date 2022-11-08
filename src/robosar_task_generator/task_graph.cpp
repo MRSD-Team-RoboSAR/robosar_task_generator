@@ -2,12 +2,6 @@
 
 #include "task_graph.hpp"
 
-// Coverage planner parameters
-#define COV_MIN_INFO_GAIN_RADIUS_M 0.5
-#define COV_PERCENT_COVERAGE_OVERLAP 0.75f        // TODO
-#define COV_MIN_DIST_BETWEEN_COVERAGE_POINTS 1.0f // TODO
-#define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
-std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
 
 TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {
@@ -676,6 +670,12 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     // Calculate information gain
     float info_gain = informationGain(x_new);
     vertexPtr->rrt_.add_node(x_new.first, x_new.second, nearest_node_id, info_gain);
+
+    // update intra tree coverage nodes
+    vertexPtr->rrt_.update_coverage_nodes();
+
+    // filter intra tree coverage nodes
+    vertexPtr->rrt_.filter_coverage_nodes();
   }
 
   // visualise
