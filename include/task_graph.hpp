@@ -34,19 +34,14 @@ public:
     {
     public:
         TaskVertex() : pose_(), neighbors_(), rrt_() {}
-        TaskVertex(int id, geometry_msgs::Pose pose, bool is_coverage_node)
-            : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false), rrt_(pose_) {}
+        TaskVertex(int id, geometry_msgs::Pose pose, float info_gain)
+            : id_(id), pose_(pose), neighbors_(), info_updated_(true), rrt_(pose_,info_gain) {}
 
-        float get_info_gain_radius() { return info_gain_radius_; };
         std::tuple<int, std::pair<float, float>> steerVertex(std::pair<float, float> x_rand, float eta);
         int id_;
         geometry_msgs::Pose pose_;
         std::vector<int> neighbors_;
         bool info_updated_;
-        float info_gain_radius_;
-        bool is_coverage_node_;
-        bool is_visited_;
-        bool is_allocated_;
         RRT rrt_;
     };
 
@@ -67,7 +62,7 @@ private:
     int gridValue(std::pair<float, float> &Xp);
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
-    bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
+    //bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
     TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
     void initROSParams(void);
 

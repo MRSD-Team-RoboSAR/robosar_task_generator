@@ -133,7 +133,7 @@ class FrontierFilter:
 
         arraypoints = PointArray()
 
-        rospy.loginfo("Starting filter")
+        #rospy.loginfo("Starting filter")
         centroids = []
         possible_frontiers = []
         labels = []

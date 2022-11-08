@@ -7,8 +7,9 @@
 class Node
 {
 public:
-    Node(float x, float y, tf2::Transform root_to_node, int id, int parent_id)
-        : x_(x), y_(y), root_to_node_(root_to_node), id_(id), parent_(parent_id){};
+    Node(float x, float y, tf2::Transform root_to_node, int id, int parent_id, float info_gain)
+        : x_(x), y_(y), root_to_node_(root_to_node), id_(id), parent_(parent_id), info_gain_radius_(info_gain),
+          is_coverage_node_(false), is_allocated_(false) {};
     ~Node(){};
 
     bool is_root() { return is_root_; }
@@ -24,6 +25,7 @@ public:
     tf2::Transform get_rel_tf() {return root_to_node_;}
     int get_id() { return id_; }
     std::pair<float, float> get_coord() { return std::make_pair(x_, y_); }
+    float get_info_gain_radius() { return info_gain_radius_; }
 
     void add_child(int child)
     {
@@ -41,7 +43,12 @@ public:
     std::unordered_set<int> get_children() { return children_; }
     int get_parent() { return parent_; }
 
+    bool is_coverage_node_;
+    bool is_visited_;
+    bool is_allocated_;
+
 private:
+    float info_gain_radius_;
     float x_;
     float y_;
     const tf2::Transform root_to_node_;

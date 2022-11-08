@@ -35,10 +35,10 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   }
 
   ROS_INFO("Task Graphing!");
-  node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
+  //node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
 
   // RRT expansion timer
-  rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_), boost::bind(&TaskGraph::expandRRT, this, _1));
+  //rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_), boost::bind(&TaskGraph::expandRRT, this, _1));
 }
 
 void TaskGraph::initROSParams(void) {
@@ -54,16 +54,16 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
 {
   // TODO
   // Go through all the vertices and add unvisited coverage nodes to the response
-  for (auto &v : V_)
-  {
-    if (v.is_coverage_node_ && !v.is_visited_)
-    {
-      res.task_ids.push_back(v.id_);
-      res.points.push_back(v.pose_.position);
-      res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
-      v.is_allocated_ = true;
-    }
-  }
+  // for (auto &v : V_)
+  // {
+  //   if (v.is_coverage_node_ && !v.is_visited_)
+  //   {
+  //     res.task_ids.push_back(v.id_);
+  //     res.points.push_back(v.pose_.position);
+  //     res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
+  //     v.is_allocated_ = true;
+  //   }
+  // }
 
   ROS_WARN("Task Graph Service Callback");
   // visualise coverage points
@@ -76,12 +76,12 @@ bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_sett
 {
   // TODO
   // Go through all visited tasks and mark them as visited
-  for (const auto &finished_task_ : req.finished_task_ids)
-  {
-    assert(V_[id_to_index_[finished_task_]].is_coverage_node_);
-    assert(V_[id_to_index_[finished_task_]].is_allocated_);
-    V_[id_to_index_[finished_task_]].is_visited_ = true;
-  }
+  // for (const auto &finished_task_ : req.finished_task_ids)
+  // {
+  //   assert(V_[id_to_index_[finished_task_]].is_coverage_node_);
+  //   assert(V_[id_to_index_[finished_task_]].is_allocated_);
+  //   V_[id_to_index_[finished_task_]].is_visited_ = true;
+  // }
 
   ROS_WARN("Task Graph Setter Service Callback");
   // visualise coverage points
@@ -206,7 +206,9 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new
       if (id_to_index_.find(marker.id) == id_to_index_.end())
       {
         // Add the node to the graph
-        TaskVertex new_vertex(marker.id, marker.pose, false);
+        std::pair<float, float> vertex_pos = std::make_pair(marker.pose.position.x, marker.pose.position.y);
+        float info_gain = informationGain(vertex_pos);
+        TaskVertex new_vertex(marker.id, marker.pose, info_gain);
         V_.push_back(new_vertex);
         id_to_index_[marker.id] = V_.size() - 1;
         local_graph_update = true;
@@ -245,65 +247,65 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new
 void TaskGraph::coverageTaskGenerator()
 {
 
-  while (ros::ok())
-  {
-    std::unique_lock<std::mutex> lk(mtx);
-    cv_.wait(lk, [this]
-             { return new_data_rcvd_; });
+//   while (ros::ok())
+//   {
+//     std::unique_lock<std::mutex> lk(mtx);
+//     cv_.wait(lk, [this]
+//              { return new_data_rcvd_; });
 
-    ROS_WARN("Running coverage task generator");
+//     ROS_WARN("Running coverage task generator");
 
-    /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
-    for (auto &vertex : V_)
-    {
-      if (vertex.info_updated_)
-      {
-        ROS_WARN("Vertex %d has been updated", vertex.id_);
+//     /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
+//     for (auto &vertex : V_)
+//     {
+//       if (vertex.info_updated_)
+//       {
+//         ROS_WARN("Vertex %d has been updated", vertex.id_);
 
-        std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-        vertex.info_gain_radius_ = informationGain(vertex_pos);
-        vertex.rrt_.update_rrt(vertex.pose_);
-        vertex.info_updated_ = false;
-      }
-    }
+//         // std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
+//         // vertex.info_gain_radius_ = informationGain(vertex_pos);
+//         vertex.rrt_.update_rrt(vertex.pose_);
+//         vertex.info_updated_ = false;
+//       }
+//     }
 
-    /** ======================= Iterate again and update coverage points ================================ */
-    for (auto &vertex : V_)
-    {
-      //      if(vertex.info_updated_) {
+//     /** ======================= Iterate again and update coverage points ================================ */
+//     for (auto &vertex : V_)
+//     {
+//       //      if(vertex.info_updated_) {
 
-      // Check if valid coverage point
-      std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-      if (vertex.is_allocated_ || vertex.is_visited_ || isValidCoveragePoint(vertex_pos, vertex.get_info_gain_radius(), vertex.id_))
-      {
-        vertex.is_coverage_node_ = true;
-        // ROS_INFO("Vertex %d is a coverage point", vertex.id_);
-      }
-      else
-      {
-        vertex.is_coverage_node_ = false;
-      }
+//       // Check if valid coverage point
+//       std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
+//       if (vertex.is_allocated_ || vertex.is_visited_ || isValidCoveragePoint(vertex_pos, vertex.get_info_gain_radius(), vertex.id_))
+//       {
+//         vertex.is_coverage_node_ = true;
+//         // ROS_INFO("Vertex %d is a coverage point", vertex.id_);
+//       }
+//       else
+//       {
+//         vertex.is_coverage_node_ = false;
+//       }
 
-      vertex.info_updated_ = false;
-      //      }
-    }
+//       vertex.info_updated_ = false;
+//       //      }
+//     }
 
-    /**** ====================== Naive filtering : remove coverage points that are too close to each other ======== */
-    for (auto &vertex : V_)
-    {
-      if (vertex.is_coverage_node_ && !vertex.is_visited_ && !vertex.is_allocated_)
-      {
-        std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-        filterCoveragePoints(vertex_pos, vertex.get_info_gain_radius(), vertex.id_);
-      }
-    }
+//     /**** ====================== Naive filtering : remove coverage points that are too close to each other ======== */
+//     for (auto &vertex : V_)
+//      {
+//        if (vertex.is_coverage_node_ && !vertex.is_visited_ && !vertex.is_allocated_)
+//        {
+//          std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
+//          filterCoveragePoints(vertex_pos, vertex.get_info_gain_radius(), vertex.id_);
+//        }
+//    }
 
-    // visualise coverage points
-    visualizeMarkers();
+//     // visualise coverage points
+//     visualizeMarkers();
 
-    new_data_rcvd_ = false;
-    lk.unlock();
-  }
+//     new_data_rcvd_ = false;
+//     lk.unlock();
+//   }
 }
 
 float Norm(float x1, float y1, float x2, float y2)
@@ -381,118 +383,119 @@ float TaskGraph::informationGain(std::pair<float, float> &x)
   return info_gain_radius_m;
 }
 
-bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id)
-{
+// bool TaskGraph::isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id)
+// {
 
-  // Local variables
-  bool valid_node = true;
-  std::vector<int> to_remove_indices;
+//   // Local variables
+//   bool valid_node = true;
+//   std::vector<int> to_remove_indices;
 
-  // parameter check
-  if (info_radius < COV_MIN_INFO_GAIN_RADIUS_M)
-  {
-    return false;
-  }
+//   // parameter check
+//   if (info_radius < COV_MIN_INFO_GAIN_RADIUS_M)
+//   {
+//     return false;
+//   }
 
-  int ind = 0;
-  for (auto j = V_.begin(); j != V_.end(); j++)
-  {
+//   int ind = 0;
+//   for (auto j = V_.begin(); j != V_.end(); j++)
+//   {
 
-    // Dont compare with yourself
-    if (j->id_ == id)
-    {
-      ind++;
-      continue;
-    }
+//     // Dont compare with yourself
+//     if (j->id_ == id)
+//     {
+//       ind++;
+//       continue;
+//     }
 
-    // eliminate node which is more than info_radius away from x_new
-    float max_info_radius = std::max(info_radius, j->get_info_gain_radius());
-    if (fabs(x_new.first - j->pose_.position.x) > max_info_radius || fabs(x_new.second - j->pose_.position.y) > max_info_radius)
-    {
-      ind++;
-      continue;
-    }
+//     // eliminate node which is more than info_radius away from x_new
+//     float max_info_radius = std::max(info_radius, j->get_info_gain_radius());
+//     if (fabs(x_new.first - j->pose_.position.x) > max_info_radius || fabs(x_new.second - j->pose_.position.y) > max_info_radius)
+//     {
+//       ind++;
+//       continue;
+//     }
 
-    // TODO should we check if it is a coverage node?
-    float inter_node_dist = Norm(j->pose_.position.x, j->pose_.position.y,
-                                 x_new.first, x_new.second);
-    // If there is an overlap (either of the centers is inside the other circle)
-    // keep the node with the largest radius
-    // TODO can control per cent overlap
-    if ((info_radius > inter_node_dist || j->get_info_gain_radius() > inter_node_dist))
-    {
+//     // TODO should we check if it is a coverage node?
+//     float inter_node_dist = Norm(j->pose_.position.x, j->pose_.position.y,
+//                                  x_new.first, x_new.second);
+//     // If there is an overlap (either of the centers is inside the other circle)
+//     // keep the node with the largest radius
+//     // TODO can control per cent overlap
+//     if ((info_radius > inter_node_dist || j->get_info_gain_radius() > inter_node_dist))
+//     {
 
-      if (j->is_visited_ || j->is_allocated_)
-      {
-        valid_node = false;
-        break;
-      }
+//       if (j->is_visited_ || j->is_allocated_)
+//       {
+//         valid_node = false;
+//         break;
+//       }
 
-      if (info_radius < j->get_info_gain_radius())
-      {
+//       if (info_radius < j->get_info_gain_radius())
+//       {
 
-        // std::cout<<j->get_info_gain_radius()<<" "<<info_radius<<" "<<" "<<inter_node_dist<<" "<<id<<" "<<j->id_<<std::endl;
-        valid_node = false;
-        break;
-      }
-      else
-      {
-        to_remove_indices.push_back(ind);
-      }
-    }
+//         // std::cout<<j->get_info_gain_radius()<<" "<<info_radius<<" "<<" "<<inter_node_dist<<" "<<id<<" "<<j->id_<<std::endl;
+//         valid_node = false;
+//         break;
+//       }
+//       else
+//       {
+//         to_remove_indices.push_back(ind);
+//       }
+//     }
 
-    ind++;
-  }
+//     ind++;
+//   }
 
-  if (valid_node)
-  {
-    for (int ind : to_remove_indices)
-    {
-      V_[ind].is_coverage_node_ = false;
-    }
-  }
-  return valid_node;
-}
+//   if (valid_node)
+//   {
+//     for (int ind : to_remove_indices)
+//     {
+//       V_[ind].is_coverage_node_ = false;
+//     }
+//   }
+//   return valid_node;
+// }
 
-void TaskGraph::filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id)
-{
 
-  // Find closest coverage node
-  float closest_coverage_node_dist = std::numeric_limits<float>::max();
-  int closest_coverage_node_id = -1;
-  for (auto k = V_.begin(); k != V_.end(); k++)
-  {
-    if (k->id_ == id)
-    {
-      continue;
-    }
-    if (k->is_coverage_node_)
-    {
-      float inter_node_dist = Norm(k->pose_.position.x, k->pose_.position.y,
-                                   x_new.first, x_new.second);
-      if (inter_node_dist < closest_coverage_node_dist)
-      {
-        closest_coverage_node_dist = inter_node_dist;
-        closest_coverage_node_id = k->id_;
-      }
-    }
-  }
+// void TaskGraph::filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id)
+// {
 
-  // Disable smaller coverage node
-  if (closest_coverage_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS)
-  {
+//   // Find closest coverage node
+//   float closest_coverage_node_dist = std::numeric_limits<float>::max();
+//   int closest_coverage_node_id = -1;
+//   for (auto k = V_.begin(); k != V_.end(); k++)
+//   {
+//     if (k->id_ == id)
+//     {
+//       continue;
+//     }
+//     if (k->is_coverage_node_)
+//     {
+//       float inter_node_dist = Norm(k->pose_.position.x, k->pose_.position.y,
+//                                    x_new.first, x_new.second);
+//       if (inter_node_dist < closest_coverage_node_dist)
+//       {
+//         closest_coverage_node_dist = inter_node_dist;
+//         closest_coverage_node_id = k->id_;
+//       }
+//     }
+//   }
 
-    if (V_[id_to_index_[closest_coverage_node_id]].is_allocated_ || V_[id_to_index_[closest_coverage_node_id]].is_visited_ ||
-        info_radius < V_[id_to_index_[closest_coverage_node_id]].get_info_gain_radius())
-    {
-      V_[id_to_index_[id]].is_coverage_node_ = false;
-    }
-    else
-    {
-      V_[id_to_index_[closest_coverage_node_id]].is_coverage_node_ = false;
-    }
-  }
-}
+//   // Disable smaller coverage node
+//   if (closest_coverage_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS)
+//   {
+
+//     if (V_[id_to_index_[closest_coverage_node_id]].is_allocated_ || V_[id_to_index_[closest_coverage_node_id]].is_visited_ ||
+//         info_radius < V_[id_to_index_[closest_coverage_node_id]].get_info_gain_radius())
+//     {
+//       V_[id_to_index_[id]].is_coverage_node_ = false;
+//     }
+//     else
+//     {
+//       V_[id_to_index_[closest_coverage_node_id]].is_coverage_node_ = false;
+//     }
+//   }
+// }
 
 // gridValue function
 int TaskGraph::gridValue(std::pair<float, float> &Xp)
@@ -516,59 +519,59 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
 void TaskGraph::visualizeMarkers(void)
 {
 
-  // visualization
-  marker_points_coverage.points.clear();
-  marker_points_coverage.colors.clear();
-  marker_coverage_area_array.markers.clear();
+  // // visualization
+  // marker_points_coverage.points.clear();
+  // marker_points_coverage.colors.clear();
+  // marker_coverage_area_array.markers.clear();
 
-  // Clear old Markers
-  visualization_msgs::Marker delete_all;
-  delete_all.action = visualization_msgs::Marker::DELETEALL;
-  delete_all.id = 0;
-  marker_coverage_area_array.markers.push_back(delete_all);
-  marker_coverage_area_pub_.publish(marker_coverage_area_array);
-  marker_coverage_area_array.markers.clear();
+  // // Clear old Markers
+  // visualization_msgs::Marker delete_all;
+  // delete_all.action = visualization_msgs::Marker::DELETEALL;
+  // delete_all.id = 0;
+  // marker_coverage_area_array.markers.push_back(delete_all);
+  // marker_coverage_area_pub_.publish(marker_coverage_area_array);
+  // marker_coverage_area_array.markers.clear();
 
-  for (auto j = V_.begin(); j != V_.end(); j++)
-  {
-    geometry_msgs::Point p;
-    p.x = j->pose_.position.x;
-    p.y = j->pose_.position.y;
-    p.z = 0.0;
+  // for (auto j = V_.begin(); j != V_.end(); j++)
+  // {
+  //   geometry_msgs::Point p;
+  //   p.x = j->pose_.position.x;
+  //   p.y = j->pose_.position.y;
+  //   p.z = 0.0;
 
-    if (j->is_coverage_node_)
-    {
+  //   if (j->is_coverage_node_)
+  //   {
 
-      marker_points_coverage.points.push_back(p);
-      // Create coverage point marker
-      if (j->is_visited_)
-      {
-        marker_points_coverage.colors.push_back(color_visited_);
-      }
-      else if (j->is_allocated_)
-      {
-        marker_points_coverage.colors.push_back(color_allocated_);
-      }
-      else
-      {
-        marker_points_coverage.colors.push_back(color_coverage_);
-      }
+  //     marker_points_coverage.points.push_back(p);
+  //     // Create coverage point marker
+  //     if (j->is_visited_)
+  //     {
+  //       marker_points_coverage.colors.push_back(color_visited_);
+  //     }
+  //     else if (j->is_allocated_)
+  //     {
+  //       marker_points_coverage.colors.push_back(color_allocated_);
+  //     }
+  //     else
+  //     {
+  //       marker_points_coverage.colors.push_back(color_coverage_);
+  //     }
 
-      // Create area marker
-      marker_coverage_area.id += 1;
-      marker_coverage_area.pose.position.x = p.x;
-      marker_coverage_area.pose.position.y = p.y;
-      marker_coverage_area.scale.x = 2 * j->get_info_gain_radius();
-      marker_coverage_area.scale.y = 2 * j->get_info_gain_radius();
-      marker_coverage_area_array.markers.push_back(marker_coverage_area);
-    }
-  }
+  //     // Create area marker
+  //     marker_coverage_area.id += 1;
+  //     marker_coverage_area.pose.position.x = p.x;
+  //     marker_coverage_area.pose.position.y = p.y;
+  //     marker_coverage_area.scale.x = 2 * j->get_info_gain_radius();
+  //     marker_coverage_area.scale.y = 2 * j->get_info_gain_radius();
+  //     marker_coverage_area_array.markers.push_back(marker_coverage_area);
+  //   }
+  // }
 
-  if (marker_points_coverage.points.size() > 0)
-  {
-    marker_pub_.publish(marker_points_coverage);
-  }
-  marker_coverage_area_pub_.publish(marker_coverage_area_array);
+  // if (marker_points_coverage.points.size() > 0)
+  // {
+  //   marker_pub_.publish(marker_points_coverage);
+  // }
+  // marker_coverage_area_pub_.publish(marker_coverage_area_array);
 }
 
 void TaskGraph::visualizeTree(void)
@@ -624,10 +627,10 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
 
   if (prune_counter_ == 500)
   {
-    ROS_INFO("Pruning");
-    for (auto &vertex : V_) {
-      pruneRRT(vertex.rrt_);
-    }
+    // ROS_INFO("Pruning");
+    // for (auto &vertex : V_) {
+    //   pruneRRT(vertex.rrt_);
+    // }
     prune_counter_ = 0;
   }
 
@@ -670,7 +673,9 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   // valid connection
   else if (connection_type == 1)
   {
-    vertexPtr->rrt_.add_node(x_new.first, x_new.second, nearest_node_id);
+    // Calculate information gain
+    float info_gain = informationGain(x_new);
+    vertexPtr->rrt_.add_node(x_new.first, x_new.second, nearest_node_id, info_gain);
   }
 
   // visualise
@@ -679,7 +684,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   // if enough frontiers, call frontier_filter service
   if (frontiers_.size() > filter_threshold_)
   {
-    callFrontierFilterService();
+    //callFrontierFilterService();
     frontiers_.clear();
   }
 

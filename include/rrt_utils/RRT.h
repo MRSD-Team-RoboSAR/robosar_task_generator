@@ -16,14 +16,14 @@ class RRT
 {
 public:
     RRT() : map_to_root_(){};
-    RRT(geometry_msgs::Pose root_pose)
+    RRT(geometry_msgs::Pose root_pose, float info_gain)
     {
         tf2::Quaternion quat_tf;
         tf2::convert(root_pose.orientation, quat_tf);
         tf2::Vector3 pos_tf;
         tf2::convert(root_pose.position, pos_tf);
         map_to_root_ = tf2::Transform(quat_tf, pos_tf);
-        root_node_ = add_node(map_to_root_.getOrigin()[0], map_to_root_.getOrigin()[1], -1);
+        root_node_ = add_node(map_to_root_.getOrigin()[0], map_to_root_.getOrigin()[1], -1, info_gain);
         assert(root_node_);
         root_node_->set_root();
     };
@@ -39,10 +39,10 @@ public:
         return nodes_[id];
     }
 
-    std::shared_ptr<Node> add_node(float x, float y, int parent)
+    std::shared_ptr<Node> add_node(float x, float y, int parent, float info_gain)
     {
         tf2::Transform root_to_node_tf = map_to_relative(x, y);
-        nodes_[next_id_] = std::make_shared<Node>(x, y, root_to_node_tf, next_id_, parent);
+        nodes_[next_id_] = std::make_shared<Node>(x, y, root_to_node_tf, next_id_, parent, info_gain);
         auto parent_node = get_node(parent);
         if (parent_node)
             parent_node->add_child(next_id_);

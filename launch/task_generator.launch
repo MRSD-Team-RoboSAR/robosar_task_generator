@@ -4,7 +4,7 @@
         <param name="eta" value="1.0"/>
         <param name="sampling_period" value="0.01"/>
         <param name="filter_threshold" value="7"/>
-        <param name="map_topic" value="/robosar_navigation/costmap"/>
+        <param name="map_topic" value="/map"/>
     </node>
 
     <node pkg="robosar_task_generator" type="frontier_filter.py" name="frontier_filter" output="screen">
