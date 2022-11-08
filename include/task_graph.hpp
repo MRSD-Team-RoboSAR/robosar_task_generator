@@ -38,7 +38,7 @@ public:
             : id_(id), pose_(pose), neighbors_(), info_updated_(true), is_coverage_node_(is_coverage_node_), is_visited_(false), is_allocated_(false), rrt_(pose_) {}
 
         float get_info_gain_radius() { return info_gain_radius_; };
-        std::tuple<int, std::pair<float, float>> steerVertex(std::pair<float, float> x_rand, float eta);
+        std::pair<float, float> steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta);
         int id_;
         geometry_msgs::Pose pose_;
         std::vector<int> neighbors_;
@@ -68,7 +68,8 @@ private:
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
-    TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
+    std::tuple<TaskGraph::TaskVertex *, int> findNearestRRTVertex(std::pair<float, float> &x_rand);
+    TaskVertex* findNearestPoseVertex(std::pair<float, float> &x_rand);
     void initROSParams(void);
 
     // RRT functions

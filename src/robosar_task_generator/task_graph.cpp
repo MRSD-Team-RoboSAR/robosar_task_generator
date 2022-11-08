@@ -104,6 +104,7 @@ void TaskGraph::callFrontierFilterService()
 // Subscribers callback functions---------------------------------------
 void TaskGraph::mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 {
+  std::lock_guard<std::mutex> guard(mtx);
   mapData_ = *msg;
 }
 
@@ -660,14 +661,25 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   x_rand = {xr, yr};
 
   // find nearest taskgraph vertex
-  TaskVertex* vertexPtr = findNearestVertex(x_rand);
+  TaskVertex* vertexPtr = findNearestPoseVertex(x_rand);
+  int nearest_node_id = vertexPtr->rrt_.nearest(x_rand.first, x_rand.second);
 
   // grow vertex tree
-  auto [nearest_node_id, x_new] = vertexPtr->steerVertex(x_rand, eta_);
+  std::pair<float, float> x_new = vertexPtr->steerVertex(nearest_node_id, x_rand, eta_);
 
   // Check if connection is valid
   x_nearest = vertexPtr->rrt_.get_node(nearest_node_id)->get_coord();
   int connection_type = ObstacleFree(x_nearest, x_new);
+
+  // if can't connect to nearest taskgraph vertex, try to connect to nearest rrt node
+  if (connection_type == 0) {
+    auto output = findNearestRRTVertex(x_rand);
+    vertexPtr = std::get<0>(output);
+    nearest_node_id = std::get<1>(output);
+    x_new = vertexPtr->steerVertex(nearest_node_id, x_rand, eta_);
+    x_nearest = vertexPtr->rrt_.get_node(nearest_node_id)->get_coord();
+    connection_type = ObstacleFree(x_nearest, x_new);
+  }
 
   // frontier detected
   if (connection_type == -1)
@@ -701,7 +713,27 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   prune_counter_++;
 }
 
-TaskGraph::TaskVertex *TaskGraph::findNearestVertex(std::pair<float, float> &x_rand)
+std::tuple<TaskGraph::TaskVertex *, int> TaskGraph::findNearestRRTVertex(std::pair<float, float> &x_rand)
+{
+  float min_dist = std::numeric_limits<float>::max();
+  TaskVertex *nearest_vertex = NULL;
+  int nearest_node_id = -1;
+  for (auto j = V_.begin(); j != V_.end(); j++)
+  {
+    int curr_nearest_id = j->rrt_.nearest(x_rand.first, x_rand.second);
+    auto closest_node = j->rrt_.get_node(curr_nearest_id);
+    float dist = Norm(closest_node->get_x(), closest_node->get_y(), x_rand.first, x_rand.second);
+    if (dist < min_dist)
+    {
+      min_dist = dist;
+      nearest_vertex = &(*j);
+      nearest_node_id = curr_nearest_id;
+    }
+  }
+  return std::make_tuple(nearest_vertex, nearest_node_id);
+}
+
+TaskGraph::TaskVertex *TaskGraph::findNearestPoseVertex(std::pair<float, float> &x_rand)
 {
   float min_dist = 1000000;
   TaskVertex *nearest_vertex = NULL;
@@ -717,14 +749,12 @@ TaskGraph::TaskVertex *TaskGraph::findNearestVertex(std::pair<float, float> &x_r
   return nearest_vertex;
 }
 
-std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std::pair<float, float> x_rand, float eta)
+std::pair<float, float> TaskGraph::TaskVertex::steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta)
 {
-  int nearest_id = rrt_.nearest(x_rand.first, x_rand.second);
-  assert(nearest_id != -1);
-  std::pair<float, float> x_nearest = rrt_.get_node(nearest_id)->get_coord();
+  assert(nearest_node_id != -1);
+  std::pair<float, float> x_nearest = rrt_.get_node(nearest_node_id)->get_coord();
   std::pair<float, float> x_new = Steer(x_nearest, x_rand, eta);
-  auto output = std::make_tuple(nearest_id, x_new);
-  return output;
+  return x_new;
 }
 
 char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew)
