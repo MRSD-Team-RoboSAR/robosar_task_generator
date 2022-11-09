@@ -33,7 +33,7 @@ public:
     {
         if (nodes_.find(id) == nodes_.end())
         {
-            ROS_WARN("Node ID %d does not exist, cannot get.", id);
+            ROS_DEBUG("Node ID %d does not exist, cannot get.", id);
             return nullptr;
         }
         return nodes_[id];
@@ -79,6 +79,7 @@ public:
 
     void disable_node(int id)
     {
+        ROS_DEBUG("disabling node %d", id);
         if (nodes_.find(id) == nodes_.end())
         {
             ROS_WARN("Node ID %d does not exist, cannot disable.", id);
@@ -123,12 +124,13 @@ public:
 
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
         {
-            // ROS_WARN("node: %d, x: %f, y: %f", j->second->get_id(), j->second->get_x(), j->second->get_y());
-            temp = Norm(j->second->get_x(), j->second->get_y(), x, y);
-            if (temp <= min)
-            {
-                min = temp;
-                min_index = j->first;
+            if (!j->second->is_disabled()){
+                temp = Norm(j->second->get_x(), j->second->get_y(), x, y);
+                if (temp <= min)
+                {
+                    min = temp;
+                    min_index = j->first;
+                }
             }
         }
 

@@ -96,7 +96,7 @@ void TaskGraph::callFrontierFilterService()
   srv.request.map_data = mapData_;
   if (frontier_filter_client_.call(srv))
   {
-    ROS_DEBUG("Filtered frontiers.");
+    // ROS_DEBUG("Filtered frontiers.");
   }
   else
   {
@@ -147,11 +147,11 @@ void TaskGraph::initMarkers()
   marker_points.scale.x = 0.3;
   marker_points.scale.y = 0.3;
 
-  marker_line.color.r = 9.0 / 255.0;
-  marker_line.color.g = 91.0 / 255.0;
-  marker_line.color.b = 236.0 / 255.0;
-  marker_points.color.a = 1.0;
-  marker_line.color.a = 1.0;
+  //marker_line.color.r = 9.0 / 255.0;
+  //marker_line.color.g = 91.0 / 255.0;
+  //marker_line.color.b = 236.0 / 255.0;
+  marker_points.color.a = 0.5;
+  marker_line.color.a = 0.5;
   marker_points.lifetime = ros::Duration();
   marker_line.lifetime = ros::Duration();
 
@@ -577,6 +577,7 @@ void TaskGraph::visualizeTree(void)
 
   // visualization
   marker_line.points.clear();
+  marker_line.colors.clear();
 
   for (auto k = V_.begin(); k != V_.end(); k++)
   {
@@ -588,10 +589,26 @@ void TaskGraph::visualizeTree(void)
       p.x = j->second->get_x();
       p.y = j->second->get_y();
       p.z = 0.0;
+      std_msgs::ColorRGBA color_marker; 
+      if(j->second->is_disabled())
+      {
+        color_marker.r = 0.0 / 255.0;
+        color_marker.g = 0.0 / 255.0;
+        color_marker.b = 0.0 / 255.0;
+        color_marker.a = 0.3;
+      }
+      else {
+        color_marker.r = 0.0 / 255.0;
+        color_marker.g = 200.0 / 255.0;
+        color_marker.b = 200.0 / 255.0;
+        color_marker.a = 0.7;
+      }
+      marker_line.colors.push_back(color_marker);
       marker_line.points.push_back(p);
       p.x = k->rrt_.get_parent_node(j->second)->get_x();
       p.y = k->rrt_.get_parent_node(j->second)->get_y();
       p.z = 0.0;
+      marker_line.colors.push_back(color_marker);
       marker_line.points.push_back(p);
     }
   }
@@ -623,14 +640,14 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     return;
   }
 
-  // if (prune_counter_ == 500)
-  // {
-  //   ROS_INFO("Pruning");
-  //   for (auto &vertex : V_) {
-  //     pruneRRT(vertex.rrt_);
-  //   }
-  //   prune_counter_ = 0;
-  // }
+  if (prune_counter_ == 500)
+  {
+    ROS_INFO("Pruning");
+    for (auto &vertex : V_) {
+      pruneRRT(vertex.rrt_);
+    }
+    prune_counter_ = 0;
+  }
 
   // Local variables
   float xr, yr;
@@ -751,7 +768,7 @@ void TaskGraph::pruneRRT(RRT &rrt)
   std::vector<int> to_remove;
   for (auto j = rrt.nodes_.begin(); j != rrt.nodes_.end(); j++)
   {
-    if (j->second->get_parent() == -1)
+    if (j->second->get_parent() == -1 || j->second->is_disabled())
       continue;
     std::pair<float, float> x_child = j->second->get_coord();
     std::pair<float, float> x_parent = rrt.get_parent_node(j->second)->get_coord();
@@ -764,22 +781,6 @@ void TaskGraph::pruneRRT(RRT &rrt)
   for (int id : to_remove)
   {
     if (id != 0) // never remove root node
-      rrt.remove_node(id);
-  }
-  // visualization
-  marker_line.points.clear();
-  for (auto j = rrt.nodes_.begin(); j != rrt.nodes_.end(); j++)
-  {
-    if (j->second->get_parent() == -1)
-      continue;
-    geometry_msgs::Point p;
-    p.x = j->second->get_x();
-    p.y = j->second->get_y();
-    p.z = 0.0;
-    marker_line.points.push_back(p);
-    p.x = rrt.get_parent_node(j->second)->get_x();
-    p.y = rrt.get_parent_node(j->second)->get_y();
-    p.z = 0.0;
-    marker_line.points.push_back(p);
+      rrt.disable_node(id);
   }
 }

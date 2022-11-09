@@ -14,7 +14,14 @@ public:
     bool is_root() { return is_root_; }
     bool is_disabled() {return disabled_;}
     void set_root() { is_root_ = true; }
-    void set_disabled(bool disabled) {disabled_ = disabled;}
+    void set_disabled(bool disabled) {
+        ROS_DEBUG("setting %d to disabled", id_);
+        if (disabled && is_root_) {
+            ROS_WARN("Cannot disable root node.");
+            return;
+        }
+        disabled_ = disabled;
+    }
     float get_x() { return x_; }
     float get_y() { return y_; }
     void set_x(float x) { x_ = x; }
@@ -27,6 +34,10 @@ public:
 
     void add_child(int child)
     {
+        if (disabled_) {
+            ROS_WARN("Cannot add child to a disabled node.");
+            return;
+        }
         children_.insert(child);
         active_children_.insert(child);
     }
