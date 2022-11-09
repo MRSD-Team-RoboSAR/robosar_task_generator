@@ -2,17 +2,18 @@
 
 from copy import copy
 
-import functions
 import numpy as np
 import rospy
 import tf
-from functions import gridValue, informationGain
 from geometry_msgs.msg import Point, PointStamped
 from nav_msgs.msg import OccupancyGrid
 from robosar_messages.msg import PointArray
 from robosar_messages.srv import frontier_filter, frontier_filterResponse
 from sklearn.cluster import MeanShift
 from visualization_msgs.msg import Marker
+
+import functions
+from functions import gridValue, informationGain
 
 
 class FrontierFilter:
@@ -22,7 +23,6 @@ class FrontierFilter:
 
         # fetching all parameters
         ns = rospy.get_name()
-        self.map_topic = rospy.get_param("~map_topic", "/map")
         self.occ_threshold = rospy.get_param("~costmap_clearing_threshold", 70)
         self.info_threshold = rospy.get_param("~info_gain_threshold", 0.2)
         self.cluster_bandwidth = rospy.get_param("~cluster_bandwidth", 1.0)
@@ -47,13 +47,8 @@ class FrontierFilter:
             x = np.array([p.x, p.y])
             frontiers.append(x)
         frontiers = np.array(frontiers)
-        
-        try:
-            map_msg = rospy.wait_for_message(self.map_topic, OccupancyGrid, timeout=None)
-            self.mapData = map_msg
-        except:
-            print("no map received.")
-            return frontier_filterResponse()
+
+        self.mapData = req.map_data
 
         self.filter(frontiers)
         return frontier_filterResponse()
@@ -101,7 +96,7 @@ class FrontierFilter:
             if functions.unvalid(self.mapData, xi):
                 obs = 1
                 break
-            if gridValue(self.mapData, xi) == 100:
+            if gridValue(self.mapData, xi) >= self.occ_threshold:
                 obs = 1
             if gridValue(self.mapData, xi) == -1:
                 unk = 1
@@ -150,7 +145,7 @@ class FrontierFilter:
         # Filter out previous centroids by information gain
         for f in self.filtered_frontiers:
             info_gain = informationGain(
-                self.mapData, [f[0], f[1]], self.info_radius
+                self.mapData, [f[0], f[1]], self.info_radius, self.occ_threshold
             )
             if info_gain > self.info_threshold:
                 possible_frontiers.append(f)
@@ -175,7 +170,7 @@ class FrontierFilter:
             if (
                 gridValue(self.mapData, x) < self.occ_threshold
                 and informationGain(
-                    self.mapData, [x[0], x[1]], self.info_radius
+                    self.mapData, [x[0], x[1]], self.info_radius, self.occ_threshold
                 )
                 > 0.15
                 and not self.check_centroid_to_rrt_collision(

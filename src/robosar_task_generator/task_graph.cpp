@@ -47,6 +47,7 @@ void TaskGraph::initROSParams(void) {
   ros::param::param<float>(ns + "/eta", eta_, 1.0);
   ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
+  ros::param::param<int>(ns + "/occ_threshold", occ_threshold_, 70);
 }
 
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
@@ -743,7 +744,7 @@ char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, fl
   {
     xi = Steer(xi, xnew, rez);
 
-    if (gridValue(xi) > 60)
+    if (gridValue(xi) > occ_threshold_)
       obs = 1;
     if (gridValue(xi) == -1)
     {

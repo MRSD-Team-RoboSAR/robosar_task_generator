@@ -99,7 +99,7 @@ private:
     std::thread node_thread_;
     std::condition_variable cv_;
     std::string frame_id_;
-    int filter_threshold_;
+    int filter_threshold_, occ_threshold_;
     float eta_;
     std::string map_topic_;
 
