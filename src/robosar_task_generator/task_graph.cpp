@@ -29,7 +29,7 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   }
 
   ROS_INFO("Task Graphing!");
-  //node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
+  node_thread_ = std::thread(&TaskGraph::taskGraphUpdater, this);
 
   // RRT expansion timer
   rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_), boost::bind(&TaskGraph::expandRRT, this, _1));
@@ -248,68 +248,47 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new
   }
 }
 
-void TaskGraph::coverageTaskGenerator()
+void TaskGraph::taskGraphUpdater()
 {
 
-//   while (ros::ok())
-//   {
-//     std::unique_lock<std::mutex> lk(mtx);
-//     cv_.wait(lk, [this]
-//              { return new_data_rcvd_; });
+  while (ros::ok())
+  {
+    std::unique_lock<std::mutex> lk(mtx);
+    cv_.wait(lk, [this]
+             { return new_data_rcvd_; });
 
-//     ROS_WARN("Running coverage task generator");
+    ROS_WARN("New pose graph received updating task graph");
 
-//     /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
-//     for (auto &vertex : V_)
-//     {
-//       if (vertex.info_updated_)
-//       {
-//         ROS_WARN("Vertex %d has been updated", vertex.id_);
+    /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
+    for (auto &vertex : V_)
+    {
+      if (vertex.info_updated_)
+      {
+        ROS_WARN("Vertex %d has been updated", vertex.id_);
 
-//         // std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-//         // vertex.info_gain_radius_ = informationGain(vertex_pos);
-//         vertex.rrt_.update_rrt(vertex.pose_);
-//         vertex.info_updated_ = false;
-//       }
-//     }
+        vertex.rrt_.update_rrt(vertex.pose_);
+        //vertex.info_updated_ = false;
+        // TODO if the tree shifts do we need to update the information gain of the vertices in the tree?
+      }
+    }
 
-//     /** ======================= Iterate again and update coverage points ================================ */
-//     for (auto &vertex : V_)
-//     {
-//       //      if(vertex.info_updated_) {
+    /** ======================= Iterate again and update coverage points ================================ */
+    for (auto &vertex : V_)
+    {
+      if(vertex.info_updated_) {
 
-//       // Check if valid coverage point
-//       std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-//       if (vertex.is_allocated_ || vertex.is_visited_ || isValidCoveragePoint(vertex_pos, vertex.get_info_gain_radius(), vertex.id_))
-//       {
-//         vertex.is_coverage_node_ = true;
-//         // ROS_INFO("Vertex %d is a coverage point", vertex.id_);
-//       }
-//       else
-//       {
-//         vertex.is_coverage_node_ = false;
-//       }
+        intertreeCoverageFiltering(&vertex);
 
-//       vertex.info_updated_ = false;
-//       //      }
-//     }
+        vertex.info_updated_ = false;
+      }
+    }
 
-//     /**** ====================== Naive filtering : remove coverage points that are too close to each other ======== */
-//     for (auto &vertex : V_)
-//      {
-//        if (vertex.is_coverage_node_ && !vertex.is_visited_ && !vertex.is_allocated_)
-//        {
-//          std::pair<float, float> vertex_pos = std::make_pair(vertex.pose_.position.x, vertex.pose_.position.y);
-//          filterCoveragePoints(vertex_pos, vertex.get_info_gain_radius(), vertex.id_);
-//        }
-//    }
+    // visualise coverage points
+    visualizeMarkers();
 
-//     // visualise coverage points
-//     visualizeMarkers();
-
-//     new_data_rcvd_ = false;
-//     lk.unlock();
-//   }
+    new_data_rcvd_ = false;
+    lk.unlock();
+  }
 }
 
 float Norm(float x1, float y1, float x2, float y2)

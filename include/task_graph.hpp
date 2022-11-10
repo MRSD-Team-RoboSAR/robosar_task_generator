@@ -65,7 +65,7 @@ private:
     TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
 
     // Coverage task generator
-    void coverageTaskGenerator();
+    void taskGraphUpdater();
     float informationGain(std::pair<float, float> &x);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     void intertreeCoverageFiltering(TaskVertex* vertexPtr);
