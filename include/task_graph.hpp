@@ -46,6 +46,7 @@ public:
     };
 
 private:
+    // ROS interface 
     bool taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
                                   robosar_messages::task_graph_getter::Response &res);
 
@@ -53,25 +54,30 @@ private:
                                         robosar_messages::task_graph_setter::Response &res);
 
     void callFrontierFilterService();
-
     void incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new_graph);
-    void coverageTaskGenerator();
-    void initMarkers(void);
-    void visualizeMarkers(void);
-    float informationGain(std::pair<float, float> &x);
-    int gridValue(std::pair<float, float> &Xp);
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
-    void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
-    //bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
-    TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
     void initROSParams(void);
+
+    //bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
+    int gridValue(std::pair<float, float> &Xp);
+    TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
+
+    // Coverage task generator
+    void coverageTaskGenerator();
+    float informationGain(std::pair<float, float> &x);
+    void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
+    void intertreeCoverageFilter(int tree_id);
 
     // RRT functions
     void expandRRT(const ros::TimerEvent &);
     std::pair<float, float> pixelsToMap(int x_pixel, int y_pixel);
-    void visualizeTree(void);
     char ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew);
     void pruneRRT(RRT &rrt);
+
+    // visualisation
+    void initMarkers(void);
+    void visualizeMarkers(void);
+    void visualizeTree(void);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;

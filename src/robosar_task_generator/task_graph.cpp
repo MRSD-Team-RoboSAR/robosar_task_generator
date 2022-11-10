@@ -48,16 +48,23 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
 {
   // TODO
   // Go through all the vertices and add unvisited coverage nodes to the response
-  // for (auto &v : V_)
-  // {
-  //   if (v.is_coverage_node_ && !v.is_visited_)
-  //   {
-  //     res.task_ids.push_back(v.id_);
-  //     res.points.push_back(v.pose_.position);
-  //     res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
-  //     v.is_allocated_ = true;
-  //   }
-  // }
+  for (auto &v : V_)
+  {
+    for (auto& cov_node_id : v.rrt_.coverage_nodes_) {
+      auto node_ptr = v.rrt_.get_node(cov_node_id);
+      if (!node_ptr->is_visited_)
+      {
+        res.task_ids.push_back(v.id_*10000 + node_ptr->get_id());
+        geometry_msgs::Point p;
+        p.x = node_ptr->get_x();
+        p.y = node_ptr->get_y();
+        p.z = 0.0;
+        res.points.push_back(p);
+        res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
+        node_ptr->is_allocated_ = true;
+      }
+    }
+  }
 
   ROS_WARN("Task Graph Service Callback");
   // visualise coverage points
@@ -70,12 +77,15 @@ bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_sett
 {
   // TODO
   // Go through all visited tasks and mark them as visited
-  // for (const auto &finished_task_ : req.finished_task_ids)
-  // {
-  //   assert(V_[id_to_index_[finished_task_]].is_coverage_node_);
-  //   assert(V_[id_to_index_[finished_task_]].is_allocated_);
-  //   V_[id_to_index_[finished_task_]].is_visited_ = true;
-  // }
+  for (const auto &finished_task_ : req.finished_task_ids)
+  {
+    int vertex_id = finished_task_ / 10000;
+    int node_id = finished_task_ % 10000;
+    auto node_ptr = V_[id_to_index_[vertex_id]].rrt_.get_node(node_id);
+    assert(node_ptr->is_coverage_node_);
+    assert(node_ptr->is_allocated_);
+    node_ptr->is_visited_ = true;
+  }
 
   ROS_WARN("Task Graph Setter Service Callback");
   // visualise coverage points
@@ -790,4 +800,11 @@ void TaskGraph::pruneRRT(RRT &rrt)
     p.z = 0.0;
     marker_line.points.push_back(p);
   }
+}
+
+void TaskGraph::intertreeCoverageFilter(int tree_id) {
+
+  // Check if all coverage nodes in this tree are valid
+  // if not remove them
+  //std::
 }
