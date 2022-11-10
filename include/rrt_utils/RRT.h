@@ -188,6 +188,7 @@ public:
 
     void update_coverage_nodes(void) {
 
+        coverage_nodes_.clear();
         // Mark all nodes as coverage nodes
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
         {

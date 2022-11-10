@@ -9,7 +9,7 @@ class Node
 public:
     Node(float x, float y, tf2::Transform root_to_node, int id, int parent_id, float info_gain)
         : x_(x), y_(y), root_to_node_(root_to_node), id_(id), parent_(parent_id), info_gain_radius_(info_gain),
-          is_coverage_node_(false), is_allocated_(false) {};
+          is_coverage_node_(false), is_allocated_(false), is_visited_(false) {};
     ~Node(){};
 
     bool is_root() { return is_root_; }

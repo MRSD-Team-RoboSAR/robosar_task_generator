@@ -32,7 +32,7 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   //node_thread_ = std::thread(&TaskGraph::coverageTaskGenerator, this);
 
   // RRT expansion timer
-  //rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_), boost::bind(&TaskGraph::expandRRT, this, _1));
+  rrt_expansion_timer_ = nh_.createTimer(ros::Duration(rrt_expansion_period_s_), boost::bind(&TaskGraph::expandRRT, this, _1));
 }
 
 void TaskGraph::initROSParams(void) {
@@ -513,59 +513,62 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
 void TaskGraph::visualizeMarkers(void)
 {
 
-  // // visualization
-  // marker_points_coverage.points.clear();
-  // marker_points_coverage.colors.clear();
-  // marker_coverage_area_array.markers.clear();
+  // visualization
+  marker_points_coverage.points.clear();
+  marker_points_coverage.colors.clear();
+  marker_coverage_area_array.markers.clear();
 
-  // // Clear old Markers
-  // visualization_msgs::Marker delete_all;
-  // delete_all.action = visualization_msgs::Marker::DELETEALL;
-  // delete_all.id = 0;
-  // marker_coverage_area_array.markers.push_back(delete_all);
-  // marker_coverage_area_pub_.publish(marker_coverage_area_array);
-  // marker_coverage_area_array.markers.clear();
+  // Clear old Markers
+  visualization_msgs::Marker delete_all;
+  delete_all.action = visualization_msgs::Marker::DELETEALL;
+  delete_all.id = 0;
+  marker_coverage_area_array.markers.push_back(delete_all);
+  marker_coverage_area_pub_.publish(marker_coverage_area_array);
+  marker_coverage_area_array.markers.clear();
 
-  // for (auto j = V_.begin(); j != V_.end(); j++)
-  // {
-  //   geometry_msgs::Point p;
-  //   p.x = j->pose_.position.x;
-  //   p.y = j->pose_.position.y;
-  //   p.z = 0.0;
+  for (auto j = V_.begin(); j != V_.end(); j++)
+  {
+    // Get coverage nodes
+    std::vector<int> coverage_nodes_ = j->rrt_.coverage_nodes_;
+    for (const auto& k : coverage_nodes_)
+    {
+      geometry_msgs::Point p;
+      const auto node_ptr = j->rrt_.get_node(k);
+      p.x = node_ptr->get_x();
+      p.y = node_ptr->get_y();
+      p.z = 0.0;
 
-  //   if (j->is_coverage_node_)
-  //   {
+      marker_points_coverage.points.push_back(p);
+      // Create coverage point marker
+      if (node_ptr->is_visited_)
+      {
+        marker_points_coverage.colors.push_back(color_visited_);
+      }
+      else if (node_ptr->is_allocated_)
+      {
+        marker_points_coverage.colors.push_back(color_allocated_);
+      }
+      else
+      {
+        marker_points_coverage.colors.push_back(color_coverage_);
+      }
 
-  //     marker_points_coverage.points.push_back(p);
-  //     // Create coverage point marker
-  //     if (j->is_visited_)
-  //     {
-  //       marker_points_coverage.colors.push_back(color_visited_);
-  //     }
-  //     else if (j->is_allocated_)
-  //     {
-  //       marker_points_coverage.colors.push_back(color_allocated_);
-  //     }
-  //     else
-  //     {
-  //       marker_points_coverage.colors.push_back(color_coverage_);
-  //     }
+      // Create area marker
+      marker_coverage_area.id += 1;
+      marker_coverage_area.pose.position.x = p.x;
+      marker_coverage_area.pose.position.y = p.y;
+      marker_coverage_area.scale.x = 2 * node_ptr->get_info_gain_radius();
+      marker_coverage_area.scale.y = 2 * node_ptr->get_info_gain_radius();
+      marker_coverage_area_array.markers.push_back(marker_coverage_area);
+    }
+    
+  }
 
-  //     // Create area marker
-  //     marker_coverage_area.id += 1;
-  //     marker_coverage_area.pose.position.x = p.x;
-  //     marker_coverage_area.pose.position.y = p.y;
-  //     marker_coverage_area.scale.x = 2 * j->get_info_gain_radius();
-  //     marker_coverage_area.scale.y = 2 * j->get_info_gain_radius();
-  //     marker_coverage_area_array.markers.push_back(marker_coverage_area);
-  //   }
-  // }
-
-  // if (marker_points_coverage.points.size() > 0)
-  // {
-  //   marker_pub_.publish(marker_points_coverage);
-  // }
-  // marker_coverage_area_pub_.publish(marker_coverage_area_array);
+  if (marker_points_coverage.points.size() > 0)
+  {
+    marker_pub_.publish(marker_points_coverage);
+  }
+  marker_coverage_area_pub_.publish(marker_coverage_area_array);
 }
 
 void TaskGraph::visualizeTree(void)
@@ -680,6 +683,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
 
   // visualise
   visualizeTree();
+  visualizeMarkers();
 
   // if enough frontiers, call frontier_filter service
   if (frontiers_.size() > filter_threshold_)
