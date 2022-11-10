@@ -2,13 +2,13 @@
 
 from copy import copy
 
+import actionlib
 import numpy as np
 import rospy
 import tf
 from geometry_msgs.msg import Point, PointStamped
 from nav_msgs.msg import OccupancyGrid
-from robosar_messages.msg import PointArray
-from robosar_messages.srv import frontier_filter, frontier_filterResponse
+from robosar_messages.msg import PointArray, FrontierFilterAction, FrontierFilterActionResult
 from sklearn.cluster import MeanShift
 from visualization_msgs.msg import Marker
 
@@ -31,7 +31,8 @@ class FrontierFilter:
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
         self.geofence = [-0.5, 12.0, -10.0, 2.0]  # x_min, x_max, y_min, y_max
 
-        rospy.Service('frontier_filter_srv', frontier_filter, self.frontier_srv_callback)
+        self.filter_as = actionlib.SimpleActionServer('frontier_filter_srv', FrontierFilterAction, execute_cb=self.frontier_srv_callback, auto_start = True)
+        self.filter_as.start()
         self.frontier_marker_pub = rospy.Publisher(
             ns + "/frontier_centroids", Marker, queue_size=10
         )
@@ -51,7 +52,7 @@ class FrontierFilter:
         self.mapData = req.map_data
 
         self.filter(frontiers)
-        return frontier_filterResponse()
+        self.filter_as.set_succeeded(FrontierFilterActionResult())
 
     def init_markers(self):
         points_clust = Marker()

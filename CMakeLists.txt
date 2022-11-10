@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   visualization_msgs
   tf2
+  actionlib
+  actionlib_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,7 +112,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robosar_task_generator
-  CATKIN_DEPENDS robosar_messages
+  CATKIN_DEPENDS robosar_messages actionlib actionlib_msgs
 #  DEPENDS system_lib
 )
 

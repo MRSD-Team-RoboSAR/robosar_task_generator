@@ -1,5 +1,7 @@
 // Created by Indraneel on 22/10/22
+#include <actionlib/client/simple_action_client.h>
 
+#include "robosar_messages/FrontierFilterAction.h"
 #include "task_graph.hpp"
 
 // Coverage planner parameters
@@ -22,7 +24,6 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   // advertise task graph services
   task_graph_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_getter", &TaskGraph::taskGraphServiceCallback, this);
   task_setter_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_setter", &TaskGraph::taskGraphSetterServiceCallback, this);
-  frontier_filter_client_ = nh_.serviceClient<robosar_messages::frontier_filter>("frontier_filter_srv");
 
   initMarkers();
 
@@ -92,17 +93,12 @@ bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_sett
 
 void TaskGraph::callFrontierFilterService()
 {
-  robosar_messages::frontier_filter srv;
-  srv.request.frontiers = frontiers_;
-  srv.request.map_data = mapData_;
-  if (frontier_filter_client_.call(srv))
-  {
-    // ROS_DEBUG("Filtered frontiers.");
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service frontier_filter_srv.");
-  }
+  actionlib::SimpleActionClient<robosar_messages::FrontierFilterAction> frontier_filter_client_("frontier_filter_srv", true);
+  frontier_filter_client_.waitForServer();
+  robosar_messages::FrontierFilterGoal req;
+  req.frontiers = frontiers_;
+  req.map_data = mapData_;
+  frontier_filter_client_.sendGoal(req);
 }
 
 // Subscribers callback functions---------------------------------------
