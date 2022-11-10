@@ -23,6 +23,8 @@
 #include "mtrand.h"
 #include "rrt_utils/RRT.h"
 
+// Assumed 
+// ->  Should not have more than 10000 nodes per tree else id calculations need to be changed
 class TaskGraph
 {
 
@@ -66,7 +68,7 @@ private:
     void coverageTaskGenerator();
     float informationGain(std::pair<float, float> &x);
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
-    void intertreeCoverageFilter(int tree_id);
+    void intertreeCoverageFiltering(TaskVertex* vertexPtr);
 
     // RRT functions
     void expandRRT(const ros::TimerEvent &);

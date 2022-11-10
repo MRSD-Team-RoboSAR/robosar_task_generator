@@ -689,6 +689,8 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
 
     // filter intra tree coverage nodes
     vertexPtr->rrt_.filter_coverage_nodes();
+
+    intertreeCoverageFiltering(vertexPtr);
   }
 
   // visualise
@@ -802,9 +804,81 @@ void TaskGraph::pruneRRT(RRT &rrt)
   }
 }
 
-void TaskGraph::intertreeCoverageFilter(int tree_id) {
+// returns true if coverage points are redundant
+bool intertreeCoverageFilter(std::shared_ptr<Node> node1, std::shared_ptr<Node> node2)
+{
+
+  // check overlap
+  // TODO should we check if it is a coverage node?
+  float inter_node_dist = Norm(node1->get_x(), node1->get_y(),
+                              node2->get_x(), node2->get_y());
+  // If there is an overlap (either of the centers is inside the other circle)
+  if ((node1->get_info_gain_radius() > inter_node_dist || node2->get_info_gain_radius() > inter_node_dist))
+  {
+    return true;
+  } 
+
+  // check node to node distance
+  if (inter_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS) 
+    return true;
+
+   return false;
+}
+
+void TaskGraph::intertreeCoverageFiltering(TaskVertex* vertexPtr) {
 
   // Check if all coverage nodes in this tree are valid
   // if not remove them
-  //std::
+  for (auto my_node_id_ptr = vertexPtr->rrt_.coverage_nodes_.begin(); 
+            my_node_id_ptr != vertexPtr->rrt_.coverage_nodes_.end();) {
+    
+    bool redundant = false;
+    auto my_node_ptr = vertexPtr->rrt_.get_node(*my_node_id_ptr);
+
+    // dont filter allocated or visited coverage points
+    if (my_node_ptr->is_allocated_ || my_node_ptr->is_visited_) {
+      my_node_id_ptr++;
+      continue;
+    }
+    
+    for (auto j = V_.begin(); j != V_.end(); j++) {
+      // dont compare with same tree
+      if (j->id_ == vertexPtr->id_)
+        continue;
+
+      for(auto other_node_id_ptr = j->rrt_.coverage_nodes_.begin(); 
+                other_node_id_ptr != j->rrt_.coverage_nodes_.end();) {
+        auto other_node_ptr = j->rrt_.get_node(*other_node_id_ptr);
+
+        if(intertreeCoverageFilter(my_node_ptr, other_node_ptr)) {
+          
+          // filter out smaller coverage node
+          if (other_node_ptr->is_allocated_ || other_node_ptr->is_visited_ || my_node_ptr->get_info_gain_radius() < other_node_ptr->get_info_gain_radius())
+          {
+            redundant = true;
+            break;
+          }
+          else {
+            other_node_ptr->is_coverage_node_ = false;
+            other_node_id_ptr = j->rrt_.coverage_nodes_.erase(other_node_id_ptr);
+            continue;
+          }
+        }
+
+        other_node_id_ptr++;
+      }
+
+      if (redundant)
+        break;
+    }
+    
+    // delete if redundant
+    if(redundant) {
+      my_node_ptr->is_coverage_node_ = false;
+      my_node_id_ptr = vertexPtr->rrt_.coverage_nodes_.erase(my_node_id_ptr);
+    }
+    else {
+      my_node_id_ptr++;
+    }
+  }
 }
