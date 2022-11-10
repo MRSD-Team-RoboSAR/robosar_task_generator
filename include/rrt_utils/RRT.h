@@ -90,6 +90,7 @@ public:
             ROS_WARN("Node ID %d is already disabled.", id);
             return;
         }
+        disabled_nodes_.insert(id);
         std::unordered_set<int> active_children = curr_node->get_active_children();
         // A leaf node
         if (active_children.size() == 0)
@@ -110,9 +111,35 @@ public:
         disable_node(id);
     }
 
+    void enable_node(int id)  {
+        auto curr_node = get_node(id);
+        auto parent_node = get_node(curr_node->get_parent());
+        if (parent_node->is_disabled()) {
+            ROS_DEBUG("Cannot enable a node whose parent is also disabled.");
+            return;
+        }
+        pop_disabled_node(id);
+        curr_node->set_disabled(false);
+        if (!curr_node->is_root()) {
+            parent_node->enable_child(id);
+        }
+    }
+
     std::shared_ptr<Node> get_parent_node(std::shared_ptr<Node> child)
     {
         return get_node(child->get_parent());
+    }
+
+    std::unordered_set<int> get_disabled_node_ids() {
+        return disabled_nodes_;
+    }
+
+    void pop_disabled_node(int id) {
+        if (disabled_nodes_.find(id) == disabled_nodes_.end()) {
+            ROS_DEBUG("Node %d is not disabled.", id);
+            return;
+        }
+        disabled_nodes_.erase(id);
     }
 
     int nearest(float x, float y)
@@ -219,6 +246,7 @@ public:
 private:
     tf2::Transform map_to_root_;
     std::shared_ptr<Node> root_node_ = NULL;
+    std::unordered_set<int> disabled_nodes_;
 };
 
 #endif // RRT_H

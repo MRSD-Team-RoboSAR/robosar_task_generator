@@ -185,7 +185,7 @@ void TaskGraph::initMarkers()
   color_frontier_.r = 0.0 / 255.0;
   color_frontier_.g = 0.0;
   color_frontier_.b = 0.0 / 255.0;
-  color_frontier_.a = 1.0;
+  color_frontier_.a = 0.2;
 }
 
 void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new_graph)
@@ -751,11 +751,11 @@ char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, fl
   char out = 0;
   xnew = xi;
   if (unk == 1)
-    out = -1;
+    out = -1; // unknown
   if (obs == 1)
-    out = 0;
+    out = 0; // occupied
   if (obs != 1 && unk != 1)
-    out = 1;
+    out = 1; // free
 
   return out;
 }
@@ -779,5 +779,33 @@ void TaskGraph::pruneRRT(RRT &rrt)
   {
     if (id != 0) // never remove root node
       rrt.disable_node(id);
+  }
+
+  propagateEnable(rrt);
+}
+
+void TaskGraph::propagateEnable(RRT &rrt) {
+  std::unordered_set<int> disabled_nodes = rrt.get_disabled_node_ids();
+  // nodes to be try and enabled
+  std::queue<int> q;
+  for (int dr : disabled_nodes) {
+    q.push(dr);
+  }
+  while (!q.empty()) {
+    int node_id = q.front();
+    q.pop();
+    auto node = rrt.get_node(node_id);
+    std::pair<float, float> x_child = node->get_coord();
+    std::pair<float, float> x_parent = rrt.get_parent_node(node)->get_coord();
+    char checking = ObstacleFree(x_parent, x_child);
+    // renable node if edge is collision free
+    if (checking == 1) {
+      rrt.enable_node(node_id);
+      // add disabled children to queue
+      for (int child_id : node->get_children()) {
+        if (rrt.get_node(child_id)->is_disabled())
+          q.push(child_id);
+      }
+    }
   }
 }

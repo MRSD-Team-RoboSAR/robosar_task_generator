@@ -63,7 +63,7 @@ def informationGain(mapData, point, r, occ_threshold):
     mask = flood(area, seed, tolerance=occ_threshold)
 
     contains_free = np.array(mask == 1) & np.array(
-        area < occ_threshold
+        area < 30
     )  # if flood fill contains free space
     if np.any(contains_free):
         info_mask = np.array(mask == 1) & np.array(

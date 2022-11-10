@@ -77,6 +77,7 @@ private:
     void visualizeTree(void);
     char ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew);
     void pruneRRT(RRT &rrt);
+    void propagateEnable(RRT &rrt);
 
     visualization_msgs::Marker marker_points, marker_line, marker_coverage_area, marker_points_coverage;
     visualization_msgs::MarkerArray marker_coverage_area_array;

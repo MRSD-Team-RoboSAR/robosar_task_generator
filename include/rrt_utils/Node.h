@@ -58,6 +58,14 @@ public:
         }
         active_children_.erase(child);
     }
+    void enable_child(int child) {
+        if (children_.find(child) == children_.end())
+        {
+            ROS_WARN("Child %d does not exist.", child);
+            return;
+        }
+        active_children_.insert(child);
+    }
     std::unordered_set<int> get_children() { return children_; }
     std::unordered_set<int> get_active_children() { return active_children_;}
     int get_parent() { return parent_; }
