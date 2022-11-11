@@ -24,6 +24,7 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   // advertise task graph services
   task_graph_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_getter", &TaskGraph::taskGraphServiceCallback, this);
   task_setter_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_setter", &TaskGraph::taskGraphSetterServiceCallback, this);
+  rrt_connect_service_ = nh_.advertiseService("/robosar_task_generator/rrt_connect", &TaskGraph::rrtConnectServiceCallback, this);
 
   initMarkers();
 
@@ -88,6 +89,19 @@ bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_sett
   ROS_WARN("Task Graph Setter Service Callback");
   // visualise coverage points
   visualizeMarkers();
+  return true;
+}
+
+bool TaskGraph::rrtConnectServiceCallback(robosar_messages::rrt_connect::Request &req, robosar_messages::rrt_connect::Response &res) {
+  std::lock_guard<std::mutex> guard(mtx);
+  std::pair<float, float> x = std::make_pair(req.point.x, req.point.y);
+  auto output = findNearestRRTVertex(x);
+  TaskVertex* tv = std::get<0>(output);
+  std::pair<float, float> xnear = tv->rrt_.get_node(std::get<1>(output))->get_coord();
+  char checking = ObstacleFree(xnear, x);
+  res.free = true;
+  if (checking == 1)
+    res.free = false;
   return true;
 }
 
