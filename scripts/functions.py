@@ -60,10 +60,11 @@ def informationGain(mapData, point, r, occ_threshold):
 
     area = map2[x_min:x_max, y_min:y_max]
     seed = (min(x, x_max - 1) - x_min, min(y, y_max - 1) - y_min)
+    area[seed[0], seed[1]] = 0 if area[seed[0], seed[1]] >= 0 else area[seed[0], seed[1]]
     mask = flood(area, seed, tolerance=occ_threshold)
 
     contains_free = np.array(mask == 1) & np.array(
-        area < 30
+        (area < 30) & (area >= 0)
     )  # if flood fill contains free space
     if np.any(contains_free):
         info_mask = np.array(mask == 1) & np.array(

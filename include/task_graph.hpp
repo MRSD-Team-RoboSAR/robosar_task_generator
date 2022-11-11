@@ -19,6 +19,7 @@
 #include "robosar_messages/task_graph_getter.h"
 #include "robosar_messages/task_graph_setter.h"
 #include "robosar_messages/frontier_filter.h"
+#include "robosar_messages/rrt_connect.h"
 #include "functions.h"
 #include "mtrand.h"
 #include "rrt_utils/RRT.h"
@@ -56,6 +57,7 @@ private:
 
     bool taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
                                         robosar_messages::task_graph_setter::Response &res);
+    bool rrtConnectServiceCallback(robosar_messages::rrt_connect::Request &req, robosar_messages::rrt_connect::Response &res);
 
     void callFrontierFilterService();
 
@@ -69,7 +71,7 @@ private:
     void filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id);
     bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
     std::tuple<TaskGraph::TaskVertex *, int> findNearestRRTVertex(std::pair<float, float> &x_rand);
-    TaskVertex* findNearestPoseVertex(std::pair<float, float> &x_rand);
+    TaskVertex *findNearestPoseVertex(std::pair<float, float> &x_rand);
     void initROSParams(void);
 
     // RRT functions
@@ -90,6 +92,7 @@ private:
     nav_msgs::OccupancyGrid mapData_;
     ros::ServiceServer task_graph_service_;
     ros::ServiceServer task_setter_service_;
+    ros::ServiceServer rrt_connect_service_;
     std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_, color_frontier_;
 
     std::map<int, int> id_to_index_;
