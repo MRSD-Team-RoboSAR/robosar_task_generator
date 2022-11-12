@@ -100,7 +100,7 @@ bool TaskGraph::rrtConnectServiceCallback(robosar_messages::rrt_connect::Request
   std::pair<float, float> xnear = tv->rrt_.get_node(std::get<1>(output))->get_coord();
   char checking = ObstacleFree(xnear, x);
   res.free = true;
-  if (checking == 1)
+  if (checking == 0)
     res.free = false;
   return true;
 }

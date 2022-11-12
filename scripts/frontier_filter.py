@@ -32,7 +32,12 @@ class FrontierFilter:
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
         self.geofence = [-0.5, 12.0, -10.0, 2.0]  # x_min, x_max, y_min, y_max
 
-        self.filter_as = actionlib.SimpleActionServer('frontier_filter_srv', FrontierFilterAction, execute_cb=self.frontier_srv_callback, auto_start = True)
+        self.filter_as = actionlib.SimpleActionServer(
+            "frontier_filter_srv",
+            FrontierFilterAction,
+            execute_cb=self.frontier_srv_callback,
+            auto_start=True,
+        )
         self.filter_as.start()
         self.frontier_marker_pub = rospy.Publisher(
             ns + "/frontier_centroids", Marker, queue_size=10
@@ -141,7 +146,6 @@ class FrontierFilter:
         # rospy.loginfo("Starting filter")
         centroids = []
         possible_frontiers = []
-        labels = []
         # Add received frontiers
         for f in received_frontiers:
             possible_frontiers.append(f)
@@ -161,7 +165,6 @@ class FrontierFilter:
             centroids = (
                 ms.cluster_centers_
             )  # centroids array is the centers of each cluster
-            labels = ms.labels_
         if len(possible_frontiers) == 1:
             centroids = possible_frontiers
 
