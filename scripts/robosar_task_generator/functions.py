@@ -152,6 +152,33 @@ def Nearest2(V, x):
             n = n1
     return i
 
+def check_edge_collision(xnear, xnew, mapData):
+        rez = float(mapData.info.resolution) * 0.2
+        stepz = int(np.ceil(Norm(xnew[0], xnew[1], xnear[0], xnear[1])) / rez)
+        xi = xnear
+        obs = 0
+        unk = 0
+
+        for _ in range(stepz):
+            xi = Steer(xi, xnew, rez)
+            if unvalid(mapData, xi):
+                obs = 1
+                break
+            if gridValue(mapData, xi) == 100:
+                obs = 1
+            if gridValue(mapData, xi) == -1:
+                unk = 1
+                break
+        out = 0
+        xnew = xi
+        if unk == 1:
+            out = -1  # unknown
+        if obs == 1:
+            out = 0  # occupied
+        if obs != 1 and unk != 1:
+            out = 1  # free
+
+        return out
 
 def gridValue(mapData, Xp):
     resolution = mapData.info.resolution

@@ -191,7 +191,7 @@ target_link_libraries(robosar_task_graph_node
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/task_generator_node.py
+  scripts/robosar_task_generator/task_generator_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
