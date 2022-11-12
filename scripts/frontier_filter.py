@@ -148,6 +148,7 @@ class FrontierFilter:
             info_gain = informationGain(
                 self.mapData, [f[0], f[1]], self.info_radius, self.occ_threshold
             )
+            # print("{}: {}".format(f, info_gain))
             if info_gain > self.info_threshold:
                 possible_frontiers.append(f)
 
@@ -173,11 +174,11 @@ class FrontierFilter:
                 and informationGain(
                     self.mapData, [x[0], x[1]], self.info_radius, self.occ_threshold
                 )
-                > 0.15
+                > self.info_threshold
                 and not self.check_centroid_to_rrt_collision(
                     c, idx, labels, possible_frontiers
                 )
-                # and self.is_valid_frontier(x)
+                and self.is_valid_frontier(x)
             ):
                 centroids_filtered.append(c)
         self.filtered_frontiers = copy(centroids_filtered)
