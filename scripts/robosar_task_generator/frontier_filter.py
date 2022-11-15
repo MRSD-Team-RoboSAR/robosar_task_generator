@@ -30,7 +30,7 @@ class FrontierFilter:
         # this can be smaller than the laser scanner range, >> smaller >>less computation time>> too small is not good, info gain won't be accurate
         self.info_radius = rospy.get_param("~info_radius", 0.5)
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
-        self.geofence = rospy.get_param("geofence", [-10.0, 2.0, -12.0, 0.5])  # x_min, x_max, y_min, y_max
+        self.geofence = rospy.get_param("~geofence", [-0.5, 12.0, -10.0, 2.0])  # x_min, x_max, y_min, y_max
 
         self.filter_as = actionlib.SimpleActionServer(
             "frontier_filter_srv",
