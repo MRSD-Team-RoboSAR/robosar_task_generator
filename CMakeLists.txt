@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   visualization_msgs
   tf2
+  actionlib
+  actionlib_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,7 +112,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robosar_task_generator
-  CATKIN_DEPENDS robosar_messages
+  CATKIN_DEPENDS robosar_messages actionlib actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -190,7 +192,7 @@ target_link_libraries(robosar_task_graph_node
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/task_generator_node.py
+  scripts/robosar_task_generator/task_generator_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

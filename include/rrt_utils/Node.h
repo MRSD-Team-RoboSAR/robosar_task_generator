@@ -15,7 +15,14 @@ public:
     bool is_root() { return is_root_; }
     bool is_disabled() {return disabled_;}
     void set_root() { is_root_ = true; }
-    void set_disabled(bool disabled) {disabled_ = disabled;}
+    void set_disabled(bool disabled) {
+        ROS_DEBUG("setting %d to disabled", id_);
+        if (disabled && is_root_) {
+            ROS_WARN("Cannot disable root node.");
+            return;
+        }
+        disabled_ = disabled;
+    }
     float get_x() { return x_; }
     float get_y() { return y_; }
     void set_x(float x) { x_ = x; }
@@ -29,7 +36,12 @@ public:
 
     void add_child(int child)
     {
+        if (disabled_) {
+            ROS_WARN("Cannot add child to a disabled node.");
+            return;
+        }
         children_.insert(child);
+        active_children_.insert(child);
     }
     void remove_child(int child)
     {
@@ -40,7 +52,24 @@ public:
         }
         children_.erase(child);
     }
+    void disable_child(int child) {
+        if (active_children_.find(child) == active_children_.end())
+        {
+            ROS_WARN("Child %d is already disabled.", child);
+            return;
+        }
+        active_children_.erase(child);
+    }
+    void enable_child(int child) {
+        if (children_.find(child) == children_.end())
+        {
+            ROS_WARN("Child %d does not exist.", child);
+            return;
+        }
+        active_children_.insert(child);
+    }
     std::unordered_set<int> get_children() { return children_; }
+    std::unordered_set<int> get_active_children() { return active_children_;}
     int get_parent() { return parent_; }
 
     bool is_coverage_node_;
@@ -57,6 +86,7 @@ private:
     bool is_root_ = false;
     bool disabled_ = false;
     std::unordered_set<int> children_;
+    std::unordered_set<int> active_children_;
 };
 
 #endif // NODE_H

@@ -46,7 +46,7 @@ public:
     {
         if (nodes_.find(id) == nodes_.end())
         {
-            ROS_WARN("Node ID %d does not exist, cannot get.", id);
+            ROS_DEBUG("Node ID %d does not exist, cannot get.", id);
             return nullptr;
         }
         return nodes_[id];
@@ -90,9 +90,69 @@ public:
         remove_node(id);
     }
 
+    void disable_node(int id)
+    {
+        ROS_DEBUG("disabling node %d", id);
+        if (nodes_.find(id) == nodes_.end())
+        {
+            ROS_WARN("Node ID %d does not exist, cannot disable.", id);
+            return;
+        }
+        auto curr_node = get_node(id);
+        if (curr_node->is_disabled()) {
+            ROS_WARN("Node ID %d is already disabled.", id);
+            return;
+        }
+        disabled_nodes_.insert(id);
+        std::unordered_set<int> active_children = curr_node->get_active_children();
+        // A leaf node
+        if (active_children.size() == 0)
+        {
+            if (!curr_node->is_root())
+            {
+                auto parent = get_node(curr_node->get_parent());
+                parent->disable_child(id);
+            }
+            curr_node->set_disabled(true);
+            return;
+        }
+        // remove children
+        for (int child_id : active_children)
+        {
+            disable_node(child_id);
+        }
+        disable_node(id);
+    }
+
+    void enable_node(int id)  {
+        auto curr_node = get_node(id);
+        auto parent_node = get_node(curr_node->get_parent());
+        if (parent_node->is_disabled()) {
+            ROS_DEBUG("Cannot enable a node whose parent is also disabled.");
+            return;
+        }
+        pop_disabled_node(id);
+        curr_node->set_disabled(false);
+        if (!curr_node->is_root()) {
+            parent_node->enable_child(id);
+        }
+    }
+
     std::shared_ptr<Node> get_parent_node(std::shared_ptr<Node> child)
     {
         return get_node(child->get_parent());
+    }
+
+    std::unordered_set<int> get_disabled_node_ids() {
+        return disabled_nodes_;
+    }
+
+    void pop_disabled_node(int id) {
+        if (disabled_nodes_.find(id) == disabled_nodes_.end()) {
+            ROS_DEBUG("Node %d is not disabled.", id);
+            return;
+        }
+        disabled_nodes_.erase(id);
     }
 
     int nearest(float x, float y)
@@ -104,12 +164,13 @@ public:
 
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
         {
-            // ROS_WARN("node: %d, x: %f, y: %f", j->second->get_id(), j->second->get_x(), j->second->get_y());
-            temp = Norm(j->second->get_x(), j->second->get_y(), x, y);
-            if (temp <= min)
-            {
-                min = temp;
-                min_index = j->first;
+            if (!j->second->is_disabled()){
+                temp = Norm(j->second->get_x(), j->second->get_y(), x, y);
+                if (temp <= min)
+                {
+                    min = temp;
+                    min_index = j->first;
+                }
             }
         }
 
@@ -359,6 +420,7 @@ bool filter_node_on_threshold(std::pair<float, float> x_new, float info_radius, 
 
     tf2::Transform map_to_root_;
     std::shared_ptr<Node> root_node_ = NULL;
+    std::unordered_set<int> disabled_nodes_;
 };
 
 #endif // RRT_H

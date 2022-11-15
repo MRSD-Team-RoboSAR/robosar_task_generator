@@ -1,5 +1,7 @@
 // Created by Indraneel on 22/10/22
+#include <actionlib/client/simple_action_client.h>
 
+#include "robosar_messages/FrontierFilterAction.h"
 #include "task_graph.hpp"
 
 // Assumption each tree should not have more than 10000 nodes
@@ -20,7 +22,7 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   // advertise task graph services
   task_graph_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_getter", &TaskGraph::taskGraphServiceCallback, this);
   task_setter_service_ = nh_.advertiseService("/robosar_task_generator/task_graph_setter", &TaskGraph::taskGraphSetterServiceCallback, this);
-  frontier_filter_client_ = nh_.serviceClient<robosar_messages::frontier_filter>("frontier_filter_srv");
+  rrt_connect_service_ = nh_.advertiseService("/robosar_task_generator/rrt_connect", &TaskGraph::rrtConnectServiceCallback, this);
 
   initMarkers();
 
@@ -45,6 +47,7 @@ void TaskGraph::initROSParams(void) {
   ros::param::param<float>(ns + "/eta", eta_, 1.0);
   ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
+  ros::param::param<int>(ns + "/occ_threshold", occ_threshold_, 70);
 }
 
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
@@ -97,24 +100,33 @@ bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_sett
   return true;
 }
 
+bool TaskGraph::rrtConnectServiceCallback(robosar_messages::rrt_connect::Request &req, robosar_messages::rrt_connect::Response &res) {
+  std::lock_guard<std::mutex> guard(mtx);
+  std::pair<float, float> x = std::make_pair(req.point.x, req.point.y);
+  auto output = findNearestRRTVertex(x);
+  TaskVertex* tv = std::get<0>(output);
+  std::pair<float, float> xnear = tv->rrt_.get_node(std::get<1>(output))->get_coord();
+  char checking = ObstacleFree(xnear, x);
+  res.free = true;
+  if (checking == 0)
+    res.free = false;
+  return true;
+}
+
 void TaskGraph::callFrontierFilterService()
 {
-  robosar_messages::frontier_filter srv;
-  srv.request.frontiers = frontiers_;
-  // srv.request.map_data = mapData_;
-  if (frontier_filter_client_.call(srv))
-  {
-    ROS_DEBUG("Filtered frontiers.");
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service frontier_filter_srv.");
-  }
+  actionlib::SimpleActionClient<robosar_messages::FrontierFilterAction> frontier_filter_client_("frontier_filter_srv", true);
+  frontier_filter_client_.waitForServer();
+  robosar_messages::FrontierFilterGoal req;
+  req.frontiers = frontiers_;
+  req.map_data = mapData_;
+  frontier_filter_client_.sendGoal(req);
 }
 
 // Subscribers callback functions---------------------------------------
 void TaskGraph::mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 {
+  std::lock_guard<std::mutex> guard(mtx);
   mapData_ = *msg;
 }
 
@@ -155,11 +167,11 @@ void TaskGraph::initMarkers()
   marker_points.scale.x = 0.3;
   marker_points.scale.y = 0.3;
 
-  marker_line.color.r = 9.0 / 255.0;
-  marker_line.color.g = 91.0 / 255.0;
-  marker_line.color.b = 236.0 / 255.0;
-  marker_points.color.a = 1.0;
-  marker_line.color.a = 1.0;
+  //marker_line.color.r = 9.0 / 255.0;
+  //marker_line.color.g = 91.0 / 255.0;
+  //marker_line.color.b = 236.0 / 255.0;
+  marker_points.color.a = 0.5;
+  marker_line.color.a = 0.5;
   marker_points.lifetime = ros::Duration();
   marker_line.lifetime = ros::Duration();
 
@@ -196,7 +208,7 @@ void TaskGraph::initMarkers()
   color_frontier_.r = 0.0 / 255.0;
   color_frontier_.g = 0.0;
   color_frontier_.b = 0.0 / 255.0;
-  color_frontier_.a = 1.0;
+  color_frontier_.a = 0.2;
 }
 
 void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new_graph)
@@ -391,6 +403,7 @@ int TaskGraph::gridValue(std::pair<float, float> &Xp)
   // map data:  100 occupied      -1 unknown       0 free
   float indx = (floor((Xp.second - Xstarty) / resolution) * width) + (floor((Xp.first - Xstartx) / resolution));
   int out;
+  assert(int(indx) < Data.size());
   out = Data[int(indx)];
   return out;
 }
@@ -461,6 +474,7 @@ void TaskGraph::visualizeTree(void)
 
   // visualization
   marker_line.points.clear();
+  marker_line.colors.clear();
 
   for (auto k = V_.begin(); k != V_.end(); k++)
   {
@@ -472,10 +486,26 @@ void TaskGraph::visualizeTree(void)
       p.x = j->second->get_x();
       p.y = j->second->get_y();
       p.z = 0.0;
+      std_msgs::ColorRGBA color_marker; 
+      if(j->second->is_disabled())
+      {
+        color_marker.r = 0.0 / 255.0;
+        color_marker.g = 0.0 / 255.0;
+        color_marker.b = 0.0 / 255.0;
+        color_marker.a = 0.3;
+      }
+      else {
+        color_marker.r = 0.0 / 255.0;
+        color_marker.g = 200.0 / 255.0;
+        color_marker.b = 200.0 / 255.0;
+        color_marker.a = 0.7;
+      }
+      marker_line.colors.push_back(color_marker);
       marker_line.points.push_back(p);
       p.x = k->rrt_.get_parent_node(j->second)->get_x();
       p.y = k->rrt_.get_parent_node(j->second)->get_y();
       p.z = 0.0;
+      marker_line.colors.push_back(color_marker);
       marker_line.points.push_back(p);
     }
   }
@@ -532,14 +562,25 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   x_rand = {xr, yr};
 
   // find nearest taskgraph vertex
-  TaskVertex* vertexPtr = findNearestVertex(x_rand);
+  TaskVertex* vertexPtr = findNearestPoseVertex(x_rand);
+  int nearest_node_id = vertexPtr->rrt_.nearest(x_rand.first, x_rand.second);
 
   // grow vertex tree
-  auto [nearest_node_id, x_new] = vertexPtr->steerVertex(x_rand, eta_);
+  std::pair<float, float> x_new = vertexPtr->steerVertex(nearest_node_id, x_rand, eta_);
 
   // Check if connection is valid
   x_nearest = vertexPtr->rrt_.get_node(nearest_node_id)->get_coord();
   int connection_type = ObstacleFree(x_nearest, x_new);
+
+  // if can't connect to nearest taskgraph vertex, try to connect to nearest rrt node
+  if (connection_type == 0) {
+    auto output = findNearestRRTVertex(x_rand);
+    vertexPtr = std::get<0>(output);
+    nearest_node_id = std::get<1>(output);
+    x_new = vertexPtr->steerVertex(nearest_node_id, x_rand, eta_);
+    x_nearest = vertexPtr->rrt_.get_node(nearest_node_id)->get_coord();
+    connection_type = ObstacleFree(x_nearest, x_new);
+  }
 
   // frontier detected
   if (connection_type == -1)
@@ -583,7 +624,27 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   prune_counter_++;
 }
 
-TaskGraph::TaskVertex *TaskGraph::findNearestVertex(std::pair<float, float> &x_rand)
+std::tuple<TaskGraph::TaskVertex *, int> TaskGraph::findNearestRRTVertex(std::pair<float, float> &x_rand)
+{
+  float min_dist = std::numeric_limits<float>::max();
+  TaskVertex *nearest_vertex = NULL;
+  int nearest_node_id = -1;
+  for (auto j = V_.begin(); j != V_.end(); j++)
+  {
+    int curr_nearest_id = j->rrt_.nearest(x_rand.first, x_rand.second);
+    auto closest_node = j->rrt_.get_node(curr_nearest_id);
+    float dist = Norm(closest_node->get_x(), closest_node->get_y(), x_rand.first, x_rand.second);
+    if (dist < min_dist)
+    {
+      min_dist = dist;
+      nearest_vertex = &(*j);
+      nearest_node_id = curr_nearest_id;
+    }
+  }
+  return std::make_tuple(nearest_vertex, nearest_node_id);
+}
+
+TaskGraph::TaskVertex *TaskGraph::findNearestPoseVertex(std::pair<float, float> &x_rand)
 {
   float min_dist = 1000000;
   TaskVertex *nearest_vertex = NULL;
@@ -599,19 +660,17 @@ TaskGraph::TaskVertex *TaskGraph::findNearestVertex(std::pair<float, float> &x_r
   return nearest_vertex;
 }
 
-std::tuple<int, std::pair<float, float>> TaskGraph::TaskVertex::steerVertex(std::pair<float, float> x_rand, float eta)
+std::pair<float, float> TaskGraph::TaskVertex::steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta)
 {
-  int nearest_id = rrt_.nearest(x_rand.first, x_rand.second);
-  assert(nearest_id != -1);
-  std::pair<float, float> x_nearest = rrt_.get_node(nearest_id)->get_coord();
+  assert(nearest_node_id != -1);
+  std::pair<float, float> x_nearest = rrt_.get_node(nearest_node_id)->get_coord();
   std::pair<float, float> x_new = Steer(x_nearest, x_rand, eta);
-  auto output = std::make_tuple(nearest_id, x_new);
-  return output;
+  return x_new;
 }
 
 char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew)
 {
-  float rez = float(mapData_.info.resolution) * .2;
+  float rez = float(mapData_.info.resolution);
   int stepz = int(ceil(Norm(xnew.first, xnew.second, xnear.first, xnear.second)) / rez);
   std::pair<float, float> xi = xnear;
   char obs = 0;
@@ -622,7 +681,7 @@ char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, fl
   {
     xi = Steer(xi, xnew, rez);
 
-    if (gridValue(xi) > 60)
+    if (gridValue(xi) > occ_threshold_)
       obs = 1;
     if (gridValue(xi) == -1)
     {
@@ -633,11 +692,11 @@ char TaskGraph::ObstacleFree(std::pair<float, float> &xnear, std::pair<float, fl
   char out = 0;
   xnew = xi;
   if (unk == 1)
-    out = -1;
+    out = -1; // unknown
   if (obs == 1)
-    out = 0;
+    out = 0; // occupied
   if (obs != 1 && unk != 1)
-    out = 1;
+    out = 1; // free
 
   return out;
 }
@@ -647,7 +706,7 @@ void TaskGraph::pruneRRT(RRT &rrt)
   std::vector<int> to_remove;
   for (auto j = rrt.nodes_.begin(); j != rrt.nodes_.end(); j++)
   {
-    if (j->second->get_parent() == -1)
+    if (j->second->get_parent() == -1 || j->second->is_disabled())
       continue;
     std::pair<float, float> x_child = j->second->get_coord();
     std::pair<float, float> x_parent = rrt.get_parent_node(j->second)->get_coord();
@@ -660,23 +719,35 @@ void TaskGraph::pruneRRT(RRT &rrt)
   for (int id : to_remove)
   {
     if (id != 0) // never remove root node
-      rrt.remove_node(id);
+      rrt.disable_node(id);
   }
-  // visualization
-  marker_line.points.clear();
-  for (auto j = rrt.nodes_.begin(); j != rrt.nodes_.end(); j++)
-  {
-    if (j->second->get_parent() == -1)
-      continue;
-    geometry_msgs::Point p;
-    p.x = j->second->get_x();
-    p.y = j->second->get_y();
-    p.z = 0.0;
-    marker_line.points.push_back(p);
-    p.x = rrt.get_parent_node(j->second)->get_x();
-    p.y = rrt.get_parent_node(j->second)->get_y();
-    p.z = 0.0;
-    marker_line.points.push_back(p);
+
+  propagateEnable(rrt);
+}
+
+void TaskGraph::propagateEnable(RRT &rrt) {
+  std::unordered_set<int> disabled_nodes = rrt.get_disabled_node_ids();
+  // nodes to be try and enabled
+  std::queue<int> q;
+  for (int dr : disabled_nodes) {
+    q.push(dr);
+  }
+  while (!q.empty()) {
+    int node_id = q.front();
+    q.pop();
+    auto node = rrt.get_node(node_id);
+    std::pair<float, float> x_child = node->get_coord();
+    std::pair<float, float> x_parent = rrt.get_parent_node(node)->get_coord();
+    char checking = ObstacleFree(x_parent, x_child);
+    // renable node if edge is collision free
+    if (checking == 1) {
+      rrt.enable_node(node_id);
+      // add disabled children to queue
+      for (int child_id : node->get_children()) {
+        if (rrt.get_node(child_id)->is_disabled())
+          q.push(child_id);
+      }
+    }
   }
 }
 

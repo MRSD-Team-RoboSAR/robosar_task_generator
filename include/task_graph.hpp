@@ -19,6 +19,7 @@
 #include "robosar_messages/task_graph_getter.h"
 #include "robosar_messages/task_graph_setter.h"
 #include "robosar_messages/frontier_filter.h"
+#include "robosar_messages/rrt_connect.h"
 #include "functions.h"
 #include "mtrand.h"
 #include "rrt_utils/RRT.h"
@@ -39,7 +40,8 @@ public:
         TaskVertex(int id, geometry_msgs::Pose pose, float info_gain)
             : id_(id), pose_(pose), neighbors_(), info_updated_(true), rrt_(pose_,info_gain) {}
 
-        std::tuple<int, std::pair<float, float>> steerVertex(std::pair<float, float> x_rand, float eta);
+        float get_info_gain_radius() { return info_gain_radius_; };
+        std::pair<float, float> steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta);
         int id_;
         geometry_msgs::Pose pose_;
         std::vector<int> neighbors_;
@@ -54,10 +56,13 @@ private:
 
     bool taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
                                         robosar_messages::task_graph_setter::Response &res);
+    bool rrtConnectServiceCallback(robosar_messages::rrt_connect::Request &req, robosar_messages::rrt_connect::Response &res);
 
     void callFrontierFilterService();
     void incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new_graph);
     void mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg);
+    std::tuple<TaskGraph::TaskVertex *, int> findNearestRRTVertex(std::pair<float, float> &x_rand);
+    TaskVertex *findNearestPoseVertex(std::pair<float, float> &x_rand);
     void initROSParams(void);
 
     //bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
@@ -75,6 +80,7 @@ private:
     std::pair<float, float> pixelsToMap(int x_pixel, int y_pixel);
     char ObstacleFree(std::pair<float, float> &xnear, std::pair<float, float> &xnew);
     void pruneRRT(RRT &rrt);
+    void propagateEnable(RRT &rrt);
 
     // visualisation
     void initMarkers(void);
@@ -91,7 +97,7 @@ private:
     nav_msgs::OccupancyGrid mapData_;
     ros::ServiceServer task_graph_service_;
     ros::ServiceServer task_setter_service_;
-    ros::ServiceClient frontier_filter_client_;
+    ros::ServiceServer rrt_connect_service_;
     std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_, color_frontier_;
 
     std::map<int, int> id_to_index_;
@@ -102,7 +108,7 @@ private:
     std::thread node_thread_;
     std::condition_variable cv_;
     std::string frame_id_;
-    int filter_threshold_;
+    int filter_threshold_, occ_threshold_;
     float eta_;
     std::string map_topic_;
 

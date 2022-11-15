@@ -2,17 +2,19 @@
 
 from copy import copy
 
-import functions
+import actionlib
 import numpy as np
 import rospy
 import tf
-from functions import gridValue, informationGain
 from geometry_msgs.msg import Point, PointStamped
 from nav_msgs.msg import OccupancyGrid
-from robosar_messages.msg import PointArray
-from robosar_messages.srv import frontier_filter, frontier_filterResponse
+from robosar_messages.msg import *
+from robosar_messages.srv import *
 from sklearn.cluster import MeanShift
 from visualization_msgs.msg import Marker
+
+import functions
+from functions import gridValue, informationGain
 
 
 class FrontierFilter:
@@ -28,9 +30,15 @@ class FrontierFilter:
         # this can be smaller than the laser scanner range, >> smaller >>less computation time>> too small is not good, info gain won't be accurate
         self.info_radius = rospy.get_param("~info_radius", 0.5)
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
-        self.geofence = [-0.5, 12.0, -10.0, 2.0]  # x_min, x_max, y_min, y_max
+        self.geofence = rospy.get_param("geofence", [-0.5, 12.0, -10.0, 2.0])  # x_min, x_max, y_min, y_max
 
-        rospy.Service('frontier_filter_srv', frontier_filter, self.frontier_srv_callback)
+        self.filter_as = actionlib.SimpleActionServer(
+            "frontier_filter_srv",
+            FrontierFilterAction,
+            execute_cb=self.frontier_srv_callback,
+            auto_start=True,
+        )
+        self.filter_as.start()
         self.frontier_marker_pub = rospy.Publisher(
             ns + "/frontier_centroids", Marker, queue_size=10
         )
@@ -46,11 +54,11 @@ class FrontierFilter:
             x = np.array([p.x, p.y])
             frontiers.append(x)
         frontiers = np.array(frontiers)
-        
+
         self.mapData = req.map_data
 
         self.filter(frontiers)
-        return frontier_filterResponse()
+        self.filter_as.set_succeeded(FrontierFilterActionResult())
 
     def init_markers(self):
         points_clust = Marker()
@@ -73,7 +81,7 @@ class FrontierFilter:
 
         return points_clust
 
-    def is_valid_frontier(self, node):
+    def in_geofence(self, node):
         if (
             node[0] > self.geofence[0]
             and node[0] < self.geofence[1]
@@ -84,7 +92,7 @@ class FrontierFilter:
         return False
 
     def check_edge_collision(self, xnear, xnew):
-        rez = float(self.mapData.info.resolution) * 0.2
+        rez = float(self.mapData.info.resolution)
         stepz = int(np.ceil(functions.Norm(xnew[0], xnew[1], xnear[0], xnear[1])) / rez)
         xi = xnear
         obs = 0
@@ -95,7 +103,7 @@ class FrontierFilter:
             if functions.unvalid(self.mapData, xi):
                 obs = 1
                 break
-            if gridValue(self.mapData, xi) == 100:
+            if gridValue(self.mapData, xi) >= self.occ_threshold:
                 obs = 1
             if gridValue(self.mapData, xi) == -1:
                 unk = 1
@@ -111,17 +119,19 @@ class FrontierFilter:
 
         return out
 
-    def check_centroid_to_rrt_collision(
-        self, centroid, label, cluster_labels, frontiers
-    ):
-        points = []
-        for idx, l in enumerate(cluster_labels):
-            if l == label:
-                points.append(frontiers[idx])
-        for p in points:
-            if self.check_edge_collision(p, centroid) == 0:
-                return True
-        return False
+    def try_rrt_connect_client(self, point):
+        rospy.wait_for_service("/robosar_task_generator/rrt_connect")
+        try:
+            rrt_connect_service = rospy.ServiceProxy(
+                "/robosar_task_generator/rrt_connect", rrt_connect
+            )
+            point_msg = Point()
+            point_msg.x = point[0]
+            point_msg.y = point[1]
+            resp = rrt_connect_service(point_msg)
+            return resp.free
+        except rospy.ServiceException as e:
+            print("task graph getter service call failed: %s" % e)
 
     def filter(self, received_frontiers):
         centroid_markers = self.init_markers()
@@ -131,12 +141,9 @@ class FrontierFilter:
         centroid_point.header.stamp = rospy.Time(0)
         centroid_point.point.z = 0.0
 
-        arraypoints = PointArray()
-
-        #rospy.loginfo("Starting filter")
+        # rospy.loginfo("Starting filter")
         centroids = []
         possible_frontiers = []
-        labels = []
         # Add received frontiers
         for f in received_frontiers:
             possible_frontiers.append(f)
@@ -144,9 +151,9 @@ class FrontierFilter:
         # Filter out previous centroids by information gain
         for f in self.filtered_frontiers:
             info_gain = informationGain(
-                self.mapData, [f[0], f[1]], self.info_radius
+                self.mapData, [f[0], f[1]], self.info_radius, self.occ_threshold
             )
-            if info_gain > self.info_threshold:
+            if info_gain > self.info_threshold and self.try_rrt_connect_client(f):
                 possible_frontiers.append(f)
 
         # Clustering frontier points
@@ -156,38 +163,39 @@ class FrontierFilter:
             centroids = (
                 ms.cluster_centers_
             )  # centroids array is the centers of each cluster
-            labels = ms.labels_
         if len(possible_frontiers) == 1:
             centroids = possible_frontiers
 
         # make sure centroid is not occupied, filter out by information gain
         centroids_filtered = []
+        infoGain_filtered = []
         for idx, c in enumerate(centroids):
             centroid_point.point.x = c[0]
             centroid_point.point.y = c[1]
             x = np.array([centroid_point.point.x, centroid_point.point.y])
+            infoGain = informationGain(
+                self.mapData, [x[0], x[1]], self.info_radius, self.occ_threshold
+            )
             if (
                 gridValue(self.mapData, x) < self.occ_threshold
-                and informationGain(
-                    self.mapData, [x[0], x[1]], self.info_radius
-                )
-                > 0.15
-                and not self.check_centroid_to_rrt_collision(
-                    c, idx, labels, possible_frontiers
-                )
-                # and self.is_valid_frontier(x)
+                and infoGain > self.info_threshold
+                and self.in_geofence(x)
             ):
                 centroids_filtered.append(c)
+                infoGain_filtered.append(infoGain)
         self.filtered_frontiers = copy(centroids_filtered)
 
         # publishing
+        arraypoints = PointArray()
         arraypoints.points = []
-        for i in centroids_filtered:
+        arraypoints.infoGain = []
+        for i, cen in enumerate(centroids_filtered):
             published_point = Point()
             published_point.z = 0.0
-            published_point.x = i[0]
-            published_point.y = i[1]
+            published_point.x = cen[0]
+            published_point.y = cen[1]
             arraypoints.points.append(published_point)
+            arraypoints.infoGain.append(infoGain_filtered[i])
         self.frontier_array_pub.publish(arraypoints)
         pp = []
         for q in range(0, len(centroids_filtered)):

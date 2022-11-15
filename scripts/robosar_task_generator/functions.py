@@ -49,7 +49,7 @@ def point_of_index(mapData, i):
     return array([x, y])
 
 
-def informationGain(mapData, point, r):
+def informationGain(mapData, point, r, occ_threshold):
     r_region = int(floor(r / mapData.info.resolution))
     map2 = np.reshape(mapData.data, (mapData.info.height, mapData.info.width))
     x, y = index_2d_of_point(mapData, point)
@@ -60,10 +60,11 @@ def informationGain(mapData, point, r):
 
     area = map2[x_min:x_max, y_min:y_max]
     seed = (min(x, x_max - 1) - x_min, min(y, y_max - 1) - y_min)
-    mask = flood(area, seed, tolerance=1)
+    area[seed[0], seed[1]] = 0 if area[seed[0], seed[1]] >= 0 else -1
+    mask = flood(area, seed, tolerance=occ_threshold)
 
     contains_free = np.array(mask == 1) & np.array(
-        area == 0
+        (area < occ_threshold) & (area >= 0)
     )  # if flood fill contains free space
     if np.any(contains_free):
         info_mask = np.array(mask == 1) & np.array(
@@ -151,6 +152,33 @@ def Nearest2(V, x):
             n = n1
     return i
 
+def check_edge_collision(xnear, xnew, mapData):
+        rez = float(mapData.info.resolution) * 0.2
+        stepz = int(np.ceil(Norm(xnew[0], xnew[1], xnear[0], xnear[1])) / rez)
+        xi = xnear
+        obs = 0
+        unk = 0
+
+        for _ in range(stepz):
+            xi = Steer(xi, xnew, rez)
+            if unvalid(mapData, xi):
+                obs = 1
+                break
+            if gridValue(mapData, xi) == 100:
+                obs = 1
+            if gridValue(mapData, xi) == -1:
+                unk = 1
+                break
+        out = 0
+        xnew = xi
+        if unk == 1:
+            out = -1  # unknown
+        if obs == 1:
+            out = 0  # occupied
+        if obs != 1 and unk != 1:
+            out = 1  # free
+
+        return out
 
 def gridValue(mapData, Xp):
     resolution = mapData.info.resolution
