@@ -30,7 +30,7 @@ class FrontierFilter:
         # this can be smaller than the laser scanner range, >> smaller >>less computation time>> too small is not good, info gain won't be accurate
         self.info_radius = rospy.get_param("~info_radius", 0.5)
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
-        self.geofence = rospy.get_param("geofence", [-0.5, 12.0, -10.0, 2.0])  # x_min, x_max, y_min, y_max
+        self.geofence = rospy.get_param("~geofence", [-0.5, 12.0, -10.0, 2.0])  # x_min, x_max, y_min, y_max
 
         self.filter_as = actionlib.SimpleActionServer(
             "frontier_filter_srv",
@@ -153,7 +153,8 @@ class FrontierFilter:
             info_gain = informationGain(
                 self.mapData, [f[0], f[1]], self.info_radius, self.occ_threshold
             )
-            if info_gain > self.info_threshold and self.try_rrt_connect_client(f):
+            valid = self.try_rrt_connect_client(f)
+            if info_gain > self.info_threshold:
                 possible_frontiers.append(f)
 
         # Clustering frontier points
@@ -188,14 +189,14 @@ class FrontierFilter:
         # publishing
         arraypoints = PointArray()
         arraypoints.points = []
-        arraypoints.infoGain = []
+        # arraypoints.infoGain = []
         for i, cen in enumerate(centroids_filtered):
             published_point = Point()
             published_point.z = 0.0
             published_point.x = cen[0]
             published_point.y = cen[1]
             arraypoints.points.append(published_point)
-            arraypoints.infoGain.append(infoGain_filtered[i])
+            # arraypoints.infoGain.append(infoGain_filtered[i])
         self.frontier_array_pub.publish(arraypoints)
         pp = []
         for q in range(0, len(centroids_filtered)):

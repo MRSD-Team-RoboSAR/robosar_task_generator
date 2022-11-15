@@ -9,7 +9,7 @@
 #define TO_VERTEX_ID(task_id) (task_id / 10000)
 #define TO_NODE_ID(task_id) (task_id % 10000)
 
-TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
+TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0), map_received_(false)
 {
   // TODO
   initROSParams();
@@ -21,9 +21,10 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
     ros::spinOnce();
     ros::Duration(0.1).sleep();
   }
+  ROS_INFO("Map received");
 
-  graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   map_sub_ = nh_.subscribe(map_topic_, 100, &TaskGraph::mapCallBack, this);
+  graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   marker_coverage_area_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/task_graph/coverage_area", 10);
   marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/task_graph/shapes", 10);
 
@@ -82,6 +83,7 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
 bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
                                                robosar_messages::task_graph_setter::Response &res)
 {
+  std::lock_guard<std::mutex> guard(mtx);
   // TODO
   // Go through all visited tasks and mark them as visited
   for (const auto &finished_task_ : req.finished_task_ids)
@@ -128,6 +130,7 @@ void TaskGraph::mapCallBack(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 {
   std::lock_guard<std::mutex> guard(mtx);
   mapData_ = *msg;
+  map_received_ = true;
 }
 
 TaskGraph::~TaskGraph()
@@ -230,9 +233,6 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new
         float info_gain = informationGain(vertex_pos);
         TaskVertex new_vertex(marker.id, marker.pose, info_gain);
 
-        // update coverage points
-        new_vertex.rrt_.update_coverage_nodes();
-
         V_.push_back(new_vertex);
         id_to_index_[marker.id] = V_.size() - 1;
         local_graph_update = true;
@@ -282,7 +282,11 @@ void TaskGraph::taskGraphUpdater()
     /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
     for (auto &vertex : V_)
     {
-      if (vertex.info_updated_)
+      if(vertex.new_node_) {
+        vertex.rrt_.update_coverage_nodes();
+        vertex.new_node_ = false;
+      }
+      else if (vertex.info_updated_)
       {
         ROS_WARN("Vertex %d has been updated", vertex.id_);
 
@@ -296,7 +300,7 @@ void TaskGraph::taskGraphUpdater()
     for (auto &vertex : V_)
     {
       if(vertex.info_updated_) {
-        
+
         // Since node to node distances are not updated, the tree is transformed as a whole
         // Intra tree coverage points should remain unaffected so only inter tree is called
         intertreeCoverageFiltering(&vertex);
@@ -365,7 +369,7 @@ float TaskGraph::informationGain(std::pair<float, float> &x)
     }
 
     // Check if obstacle
-    if (gridValue(current_position) == 100 || gridValue(current_position) == -1)
+    if (gridValue(current_position) == 100)
     {
       end_of_bfs = true;
     }

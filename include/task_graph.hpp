@@ -38,13 +38,13 @@ public:
     public:
         TaskVertex() : pose_(), neighbors_(), rrt_() {}
         TaskVertex(int id, geometry_msgs::Pose pose, float info_gain)
-            : id_(id), pose_(pose), neighbors_(), info_updated_(true), rrt_(pose_,info_gain) {}
+            : id_(id), pose_(pose), neighbors_(), info_updated_(false), rrt_(pose_,info_gain), new_node_(true) {}
 
         std::pair<float, float> steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta);
         int id_;
         geometry_msgs::Pose pose_;
         std::vector<int> neighbors_;
-        bool info_updated_;
+        bool info_updated_, new_node_;
         RRT rrt_;
     };
 
@@ -110,6 +110,7 @@ private:
     int filter_threshold_, occ_threshold_;
     float eta_;
     std::string map_topic_;
+    bool map_received_;
 
     // RRT related variables
     double rrt_expansion_period_s_;

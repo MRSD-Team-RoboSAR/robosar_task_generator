@@ -34,11 +34,11 @@ public:
         root_node_ = add_node(map_to_root_.getOrigin()[0], map_to_root_.getOrigin()[1], -1, info_gain);
         assert(root_node_);
         root_node_->set_root();
-        // root node is coverage by default and is passed to inter tree filter
-        if(is_valid_coverage_node(std::make_pair(0.0f,0.0f),info_gain,root_node_->get_id()))
-        {
-            root_node_->is_coverage_node_ = true;
-        }
+        // // root node is coverage by default and is passed to inter tree filter
+        // if(is_valid_coverage_node(std::make_pair(0.0f,0.0f),info_gain,root_node_->get_id()))
+        // {
+        //     root_node_->is_coverage_node_ = true;
+        // }
     };
     ~RRT(){};
 
