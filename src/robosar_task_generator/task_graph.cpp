@@ -2,7 +2,7 @@
 
 #include "task_graph.hpp"
 
-
+// Assumption each tree should not have more than 10000 nodes
 #define TO_TASK_ID(vertex_id, node_id) (vertex_id * 10000 + node_id)
 #define TO_VERTEX_ID(task_id) (task_id / 10000)
 #define TO_NODE_ID(task_id) (task_id % 10000)
@@ -175,7 +175,7 @@ void TaskGraph::initMarkers()
   marker_coverage_area.color.r = 0.0;
   marker_coverage_area.color.g = 0.0;
   marker_coverage_area.color.b = 255.0 / 255.0;
-  marker_coverage_area.color.a = 0.2;
+  marker_coverage_area.color.a = 0.1;
   marker_coverage_area.scale.z = 0.01;
 
   color_coverage_.r = 0.0;
@@ -514,6 +514,8 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     //   pruneRRT(vertex.rrt_);
     // }
     prune_counter_ = 0;
+
+    visualizeMarkers();
   }
 
   // Local variables
@@ -570,7 +572,6 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
 
   // visualise
   visualizeTree();
-  visualizeMarkers();
 
   // if enough frontiers, call frontier_filter service
   if (frontiers_.size() > filter_threshold_)
@@ -704,11 +705,12 @@ void TaskGraph::intertreeCoverageFiltering(TaskVertex* vertexPtr) {
 
   // Check if all coverage nodes in this tree are valid
   // if not remove them
-  std::vector<int> to_remove_task_ids;
   for (auto my_node_id_ptr = vertexPtr->rrt_.coverage_nodes_.begin();
             my_node_id_ptr != vertexPtr->rrt_.coverage_nodes_.end();) {
     
     bool redundant = false;
+    std::vector<int> to_remove_task_ids;
+    to_remove_task_ids.clear();
     auto my_node_ptr = vertexPtr->rrt_.get_node(*my_node_id_ptr);
 
     // dont filter allocated or visited coverage points
