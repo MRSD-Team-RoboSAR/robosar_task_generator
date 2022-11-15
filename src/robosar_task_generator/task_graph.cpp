@@ -3,6 +3,10 @@
 #include "task_graph.hpp"
 
 
+#define TO_TASK_ID(vertex_id, node_id) (vertex_id * 10000 + node_id)
+#define TO_VERTEX_ID(task_id) (task_id / 10000)
+#define TO_NODE_ID(task_id) (task_id % 10000)
+
 TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {
   // TODO
@@ -54,7 +58,7 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
       auto node_ptr = v.rrt_.get_node(cov_node_id);
       if (!node_ptr->is_visited_)
       {
-        res.task_ids.push_back(v.id_*10000 + node_ptr->get_id());
+        res.task_ids.push_back(TO_TASK_ID(v.id_,node_ptr->get_id()));
         geometry_msgs::Point p;
         p.x = node_ptr->get_x();
         p.y = node_ptr->get_y();
@@ -79,8 +83,8 @@ bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_sett
   // Go through all visited tasks and mark them as visited
   for (const auto &finished_task_ : req.finished_task_ids)
   {
-    int vertex_id = finished_task_ / 10000;
-    int node_id = finished_task_ % 10000;
+    int vertex_id = TO_VERTEX_ID(finished_task_);
+    int node_id = TO_NODE_ID(finished_task_);
     auto node_ptr = V_[id_to_index_[vertex_id]].rrt_.get_node(node_id);
     assert(node_ptr->is_coverage_node_);
     assert(node_ptr->is_allocated_);
@@ -97,7 +101,7 @@ void TaskGraph::callFrontierFilterService()
 {
   robosar_messages::frontier_filter srv;
   srv.request.frontiers = frontiers_;
-  srv.request.map_data = mapData_;
+  // srv.request.map_data = mapData_;
   if (frontier_filter_client_.call(srv))
   {
     ROS_DEBUG("Filtered frontiers.");
@@ -213,6 +217,10 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new
         std::pair<float, float> vertex_pos = std::make_pair(marker.pose.position.x, marker.pose.position.y);
         float info_gain = informationGain(vertex_pos);
         TaskVertex new_vertex(marker.id, marker.pose, info_gain);
+
+        // update coverage points
+        new_vertex.rrt_.update_coverage_nodes();
+
         V_.push_back(new_vertex);
         id_to_index_[marker.id] = V_.size() - 1;
         local_graph_update = true;
@@ -267,8 +275,8 @@ void TaskGraph::taskGraphUpdater()
         ROS_WARN("Vertex %d has been updated", vertex.id_);
 
         vertex.rrt_.update_rrt(vertex.pose_);
-        //vertex.info_updated_ = false;
-        // TODO if the tree shifts do we need to update the information gain of the vertices in the tree?
+        // vertex.info_updated_ = false;
+        //  TODO if the tree shifts do we need to update the information gain of the vertices in the tree?
       }
     }
 
@@ -276,7 +284,9 @@ void TaskGraph::taskGraphUpdater()
     for (auto &vertex : V_)
     {
       if(vertex.info_updated_) {
-
+        
+        // Since node to node distances are not updated, the tree is transformed as a whole
+        // Intra tree coverage points should remain unaffected so only inter tree is called
         intertreeCoverageFiltering(&vertex);
 
         vertex.info_updated_ = false;
@@ -438,7 +448,6 @@ float TaskGraph::informationGain(std::pair<float, float> &x)
 //   }
 //   return valid_node;
 // }
-
 
 // void TaskGraph::filterCoveragePoints(std::pair<float, float> x_new, float info_radius, int id)
 // {
@@ -679,7 +688,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   // if enough frontiers, call frontier_filter service
   if (frontiers_.size() > filter_threshold_)
   {
-    //callFrontierFilterService();
+    // callFrontierFilterService();
     frontiers_.clear();
   }
 
@@ -790,25 +799,26 @@ bool intertreeCoverageFilter(std::shared_ptr<Node> node1, std::shared_ptr<Node> 
   // check overlap
   // TODO should we check if it is a coverage node?
   float inter_node_dist = Norm(node1->get_x(), node1->get_y(),
-                              node2->get_x(), node2->get_y());
+                               node2->get_x(), node2->get_y());
   // If there is an overlap (either of the centers is inside the other circle)
   if ((node1->get_info_gain_radius() > inter_node_dist || node2->get_info_gain_radius() > inter_node_dist))
   {
     return true;
-  } 
+  }
 
   // check node to node distance
-  if (inter_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS) 
+  if (inter_node_dist < COV_MIN_DIST_BETWEEN_COVERAGE_POINTS)
     return true;
 
-   return false;
+  return false;
 }
 
 void TaskGraph::intertreeCoverageFiltering(TaskVertex* vertexPtr) {
 
   // Check if all coverage nodes in this tree are valid
   // if not remove them
-  for (auto my_node_id_ptr = vertexPtr->rrt_.coverage_nodes_.begin(); 
+  std::vector<int> to_remove_task_ids;
+  for (auto my_node_id_ptr = vertexPtr->rrt_.coverage_nodes_.begin();
             my_node_id_ptr != vertexPtr->rrt_.coverage_nodes_.end();) {
     
     bool redundant = false;
@@ -819,7 +829,7 @@ void TaskGraph::intertreeCoverageFiltering(TaskVertex* vertexPtr) {
       my_node_id_ptr++;
       continue;
     }
-    
+
     for (auto j = V_.begin(); j != V_.end(); j++) {
       // dont compare with same tree
       if (j->id_ == vertexPtr->id_)
@@ -834,13 +844,13 @@ void TaskGraph::intertreeCoverageFiltering(TaskVertex* vertexPtr) {
           // filter out smaller coverage node
           if (other_node_ptr->is_allocated_ || other_node_ptr->is_visited_ || my_node_ptr->get_info_gain_radius() < other_node_ptr->get_info_gain_radius())
           {
+            // ROS_INFO("Removing my coverage node %d from tree %d for cov node %d from tree %d", my_node_ptr->get_id(), vertexPtr->id_,
+            //                                                                   other_node_ptr->get_id(), j->id_);  
             redundant = true;
             break;
           }
           else {
-            other_node_ptr->is_coverage_node_ = false;
-            other_node_id_ptr = j->rrt_.coverage_nodes_.erase(other_node_id_ptr);
-            continue;
+            to_remove_task_ids.push_back(TO_TASK_ID(j->id_, other_node_ptr->get_id()));
           }
         }
 
@@ -857,6 +867,20 @@ void TaskGraph::intertreeCoverageFiltering(TaskVertex* vertexPtr) {
       my_node_id_ptr = vertexPtr->rrt_.coverage_nodes_.erase(my_node_id_ptr);
     }
     else {
+      // Process to remove task ids
+      for(auto& task_id:to_remove_task_ids) {
+        int vertex_id = TO_VERTEX_ID(task_id);
+        int node_id = TO_NODE_ID(task_id);
+        assert(id_to_index_.find(vertex_id) != id_to_index_.end());
+        assert(id_to_index_[vertex_id]<V_.size());
+        auto& vertex = V_[id_to_index_[vertex_id]];
+        assert(std::find(vertex.rrt_.coverage_nodes_.begin(),vertex.rrt_.coverage_nodes_.end(),node_id)  != vertex.rrt_.coverage_nodes_.end());
+        vertex.rrt_.coverage_nodes_.erase(std::find(vertex.rrt_.coverage_nodes_.begin(),vertex.rrt_.coverage_nodes_.end(),node_id));
+        vertex.rrt_.get_node(node_id)->is_coverage_node_ = false;
+
+        // ROS_INFO("Removing other coverage node %d from tree %d for cov node %d from tree %d", node_id, vertex_id,
+        //                                                                       my_node_ptr->get_id(), vertexPtr->id_);
+      }
       my_node_id_ptr++;
     }
   }

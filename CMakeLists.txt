@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(GTest REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -125,6 +125,7 @@ include_directories(
   include/rrt_utils
   ${catkin_INCLUDE_DIRS}
   ${robosar_messages_INCLUDE_DIRS}
+  ${GTEST_INCLUDE_DIRS}
 )
 
 
@@ -224,6 +225,12 @@ catkin_install_python(PROGRAMS
 #############
 ## Testing ##
 #############
+
+catkin_add_gtest(simple_test test/simple_test.cpp)
+catkin_add_gtest(coverage_tasks_test test/coverage_tasks_test.cpp)
+
+target_link_libraries(simple_test ${GTEST_LIBRARIES}  ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(coverage_tasks_test ${GTEST_LIBRARIES}  ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_robosar_task_generator.cpp)
