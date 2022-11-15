@@ -4,4 +4,4 @@
 ![Rest/API](./task_generator.drawio.png)
 
 ### Coverage task funnel
-![Rest/API](./coverage_task_generator.drawio.png)
+![Rest/API](./coverage_task_filter.drawio.png)
