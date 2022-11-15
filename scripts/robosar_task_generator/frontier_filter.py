@@ -36,7 +36,7 @@ class FrontierFilter:
             "frontier_filter_srv",
             FrontierFilterAction,
             execute_cb=self.frontier_srv_callback,
-            auto_start=True,
+            auto_start=False,
         )
         self.filter_as.start()
         self.frontier_marker_pub = rospy.Publisher(

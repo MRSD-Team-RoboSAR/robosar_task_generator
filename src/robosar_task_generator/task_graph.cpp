@@ -115,7 +115,7 @@ bool TaskGraph::rrtConnectServiceCallback(robosar_messages::rrt_connect::Request
 
 void TaskGraph::callFrontierFilterService()
 {
-  actionlib::SimpleActionClient<robosar_messages::FrontierFilterAction> frontier_filter_client_("frontier_filter_srv", true);
+  actionlib::SimpleActionClient<robosar_messages::FrontierFilterAction> frontier_filter_client_("frontier_filter_srv", false);
   frontier_filter_client_.waitForServer();
   robosar_messages::FrontierFilterGoal req;
   req.frontiers = frontiers_;
@@ -306,7 +306,7 @@ void TaskGraph::taskGraphUpdater()
     }
 
     // visualise coverage points
-    visualizeMarkers();
+    //visualizeMarkers();
 
     new_data_rcvd_ = false;
     lk.unlock();
@@ -540,9 +540,9 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   if (prune_counter_ == 500)
   {
     // ROS_INFO("Pruning");
-    // for (auto &vertex : V_) {
-    //   pruneRRT(vertex.rrt_);
-    // }
+    for (auto &vertex : V_) {
+       pruneRRT(vertex.rrt_);
+     }
     prune_counter_ = 0;
 
     visualizeMarkers();

@@ -40,7 +40,6 @@ public:
         TaskVertex(int id, geometry_msgs::Pose pose, float info_gain)
             : id_(id), pose_(pose), neighbors_(), info_updated_(true), rrt_(pose_,info_gain) {}
 
-        float get_info_gain_radius() { return info_gain_radius_; };
         std::pair<float, float> steerVertex(int nearest_node_id, std::pair<float, float> x_rand, float eta);
         int id_;
         geometry_msgs::Pose pose_;

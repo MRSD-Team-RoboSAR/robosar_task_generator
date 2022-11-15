@@ -3,9 +3,9 @@
 
     <node pkg="robosar_task_generator" type="robosar_task_graph_node" name="robosar_task_graph_node" output="screen">
         <param name="eta" value="1.0"/>
-        <param name="sampling_period" value="0.02"/>
+        <param name="sampling_period" value="0.05"/>
         <param name="filter_threshold" value="5"/>
-        <param name="map_topic" value="/robosar_navigation/costmap"/>
+        <param name="map_topic" value="/map"/>
         <param name="occ_threshold" value="$(arg occ_threshold)"/>
     </node>
 
