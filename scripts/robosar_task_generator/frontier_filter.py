@@ -30,7 +30,7 @@ class FrontierFilter:
         # this can be smaller than the laser scanner range, >> smaller >>less computation time>> too small is not good, info gain won't be accurate
         self.info_radius = rospy.get_param("~info_radius", 0.5)
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
-        self.geofence = [-0.5, 12.0, -10.0, 2.0]  # x_min, x_max, y_min, y_max
+        self.geofence = rospy.get_param("geofence", [-0.5, 12.0, -10.0, 2.0])  # x_min, x_max, y_min, y_max
 
         self.filter_as = actionlib.SimpleActionServer(
             "frontier_filter_srv",
@@ -141,8 +141,6 @@ class FrontierFilter:
         centroid_point.header.stamp = rospy.Time(0)
         centroid_point.point.z = 0.0
 
-        arraypoints = PointArray()
-
         # rospy.loginfo("Starting filter")
         centroids = []
         possible_frontiers = []
@@ -170,29 +168,34 @@ class FrontierFilter:
 
         # make sure centroid is not occupied, filter out by information gain
         centroids_filtered = []
+        infoGain_filtered = []
         for idx, c in enumerate(centroids):
             centroid_point.point.x = c[0]
             centroid_point.point.y = c[1]
             x = np.array([centroid_point.point.x, centroid_point.point.y])
+            infoGain = informationGain(
+                self.mapData, [x[0], x[1]], self.info_radius, self.occ_threshold
+            )
             if (
                 gridValue(self.mapData, x) < self.occ_threshold
-                and informationGain(
-                    self.mapData, [x[0], x[1]], self.info_radius, self.occ_threshold
-                )
-                > self.info_threshold
+                and infoGain > self.info_threshold
                 and self.in_geofence(x)
             ):
                 centroids_filtered.append(c)
+                infoGain_filtered.append(infoGain)
         self.filtered_frontiers = copy(centroids_filtered)
 
         # publishing
+        arraypoints = PointArray()
         arraypoints.points = []
-        for i in centroids_filtered:
+        arraypoints.infoGain = []
+        for i, cen in enumerate(centroids_filtered):
             published_point = Point()
             published_point.z = 0.0
-            published_point.x = i[0]
-            published_point.y = i[1]
+            published_point.x = cen[0]
+            published_point.y = cen[1]
             arraypoints.points.append(published_point)
+            arraypoints.infoGain.append(infoGain_filtered[i])
         self.frontier_array_pub.publish(arraypoints)
         pp = []
         for q in range(0, len(centroids_filtered)):
