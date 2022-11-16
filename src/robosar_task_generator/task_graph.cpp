@@ -232,7 +232,7 @@ void TaskGraph::incomingGraph(const visualization_msgs::MarkerArrayConstPtr &new
         TaskVertex new_vertex(marker.id, marker.pose, info_gain);
 
         // update coverage points
-        new_vertex.rrt_.update_coverage_nodes();
+        // new_vertex.rrt_.update_coverage_nodes();
 
         V_.push_back(new_vertex);
         id_to_index_[marker.id] = V_.size() - 1;
@@ -283,7 +283,12 @@ void TaskGraph::taskGraphUpdater()
     /** ==================== Iterate through all the vertices ,update information gain, update RRT ===================== */
     for (auto &vertex : V_)
     {
-      if (vertex.info_updated_)
+      if(vertex.new_vertex_) {
+        
+        vertex.rrt_.update_coverage_nodes();
+        vertex.new_vertex_ = false;
+      }
+      else if (vertex.info_updated_)
       {
         ROS_WARN("Vertex %d has been updated", vertex.id_);
 
