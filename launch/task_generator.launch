@@ -5,7 +5,7 @@
         <param name="eta" value="1.0"/>
         <param name="sampling_period" value="0.05"/>
         <param name="filter_threshold" value="5"/>
-        <param name="map_topic" value="/map"/>
+        <param name="map_topic" value="/robosar_navigation/costmap"/>
         <param name="occ_threshold" value="$(arg occ_threshold)"/>
     </node>
 
@@ -15,7 +15,7 @@
         <param name="costmap_clearing_threshold" value="$(arg occ_threshold)"/>
         <param name="cluster_bandwidth" value="0.5"/> 
         <!--x_min, x_max, y_min, y_max-->
-        <rosparam param="geofence">[1, 2, 3, 4]</rosparam>
+        <rosparam param="geofence">[-0.5, 12.0, -10.0, 2.0]</rosparam>
     </node>
 
 </launch>
