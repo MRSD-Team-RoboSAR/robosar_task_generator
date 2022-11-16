@@ -31,7 +31,7 @@ class FrontierFilter:
         self.info_radius = rospy.get_param("~info_radius", 0.5)
         self.goals_topic = rospy.get_param("~goals_topic", "/detected_points")
         self.geofence = rospy.get_param("~geofence", [-0.5, 12.0, -10.0, 2.0])  # x_min, x_max, y_min, y_max
-
+        
         self.filter_as = actionlib.SimpleActionServer(
             "frontier_filter_srv",
             FrontierFilterAction,
