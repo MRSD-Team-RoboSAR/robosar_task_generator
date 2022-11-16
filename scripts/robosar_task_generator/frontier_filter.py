@@ -188,14 +188,14 @@ class FrontierFilter:
         # publishing
         arraypoints = PointArray()
         arraypoints.points = []
-        arraypoints.infoGain = []
+        # arraypoints.infoGain = []
         for i, cen in enumerate(centroids_filtered):
             published_point = Point()
             published_point.z = 0.0
             published_point.x = cen[0]
             published_point.y = cen[1]
             arraypoints.points.append(published_point)
-            arraypoints.infoGain.append(infoGain_filtered[i])
+            # arraypoints.infoGain.append(infoGain_filtered[i])
         self.frontier_array_pub.publish(arraypoints)
         pp = []
         for q in range(0, len(centroids_filtered)):
