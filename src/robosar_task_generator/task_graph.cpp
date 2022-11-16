@@ -560,7 +560,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
 
   if (prune_counter_ == 500)
   {
-    // ROS_INFO("Pruning");
+    ROS_INFO("Pruning");
     for (auto &vertex : V_) {
        pruneRRT(vertex.rrt_);
      }
