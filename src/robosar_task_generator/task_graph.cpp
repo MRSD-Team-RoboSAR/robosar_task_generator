@@ -54,6 +54,7 @@ void TaskGraph::initROSParams(void) {
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
                                          robosar_messages::task_graph_getter::Response &res)
 {
+  std::lock_guard<std::mutex> guard(mtx);
   // TODO
   // Go through all the vertices and add unvisited coverage nodes to the response
   for (auto &v : V_)
@@ -83,6 +84,7 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
 bool TaskGraph::taskGraphSetterServiceCallback(robosar_messages::task_graph_setter::Request &req,
                                                robosar_messages::task_graph_setter::Response &res)
 {
+  std::lock_guard<std::mutex> guard(mtx);
   // TODO
   // Go through all visited tasks and mark them as visited
   for (const auto &finished_task_ : req.finished_task_ids)
