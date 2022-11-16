@@ -49,6 +49,7 @@ void TaskGraph::initROSParams(void) {
   ros::param::param<double>(ns + "/sampling_period", rrt_expansion_period_s_, 1.0 / 50);
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
   ros::param::param<int>(ns + "/occ_threshold", occ_threshold_, 70);
+  ros::param::param<std::vector<float>>(ns + "/geofence", geofence_vec_, {0.5, 0.5});
 }
 
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
@@ -534,6 +535,18 @@ std::pair<float, float> TaskGraph::pixelsToMap(int x_pixel, int y_pixel)
   return map_coords;
 }
 
+bool TaskGraph::isInsideGeofence(const std::pair<float, float> x_new) {
+
+  if(x_new.first > geofence_vec_[0] && x_new.first < geofence_vec_[1] && x_new.second > geofence_vec_[2] && x_new.second < geofence_vec_[3])
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 void TaskGraph::expandRRT(const ros::TimerEvent &)
 {
 
@@ -604,7 +617,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
     marker_pub_.publish(marker_points_coverage);
   }
   // valid connection
-  else if (connection_type == 1)
+  else if (connection_type == 1 && isInsideGeofence(x_new))
   {
     // Calculate information gain
     float info_gain = informationGain(x_new);

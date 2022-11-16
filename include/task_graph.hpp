@@ -63,6 +63,7 @@ private:
     std::tuple<TaskGraph::TaskVertex *, int> findNearestRRTVertex(std::pair<float, float> &x_rand);
     TaskVertex *findNearestPoseVertex(std::pair<float, float> &x_rand);
     void initROSParams(void);
+    bool isInsideGeofence(const std::pair<float, float> x_new);
 
     //bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
     int gridValue(std::pair<float, float> &Xp);
@@ -99,6 +100,7 @@ private:
     ros::ServiceServer rrt_connect_service_;
     std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_, color_frontier_;
 
+    std::vector<float> geofence_vec_;
     std::map<int, int> id_to_index_;
     std::vector<TaskVertex> V_;
     std::vector<geometry_msgs::Point> frontiers_;
