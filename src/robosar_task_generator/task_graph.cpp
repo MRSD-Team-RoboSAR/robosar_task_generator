@@ -14,8 +14,17 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   // TODO
   initROSParams();
 
-  graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   map_sub_ = nh_.subscribe(map_topic_, 100, &TaskGraph::mapCallBack, this);
+
+  // Wait for map topic
+  ROS_INFO("Waiting for map topic %s!", map_topic_.c_str());
+  while (mapData_.data.size() < 1)
+  {
+    ros::spinOnce();
+    ros::Duration(0.1).sleep();
+  }
+
+  graph_sub_ = nh_.subscribe("/slam_toolbox/karto_graph_visualization", 1, &TaskGraph::incomingGraph, this);
   marker_coverage_area_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("/task_graph/coverage_area", 10);
   marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/task_graph/shapes", 10);
 
@@ -25,14 +34,6 @@ TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune
   rrt_connect_service_ = nh_.advertiseService("/robosar_task_generator/rrt_connect", &TaskGraph::rrtConnectServiceCallback, this);
 
   initMarkers();
-
-  // Wait for map topic
-  ROS_INFO("Waiting for map topic %s!", map_topic_.c_str());
-  while (mapData_.data.size() < 1)
-  {
-    ros::spinOnce();
-    ros::Duration(0.1).sleep();
-  }
 
   ROS_INFO("Task Graphing!");
   node_thread_ = std::thread(&TaskGraph::taskGraphUpdater, this);
@@ -115,7 +116,7 @@ bool TaskGraph::rrtConnectServiceCallback(robosar_messages::rrt_connect::Request
 
 void TaskGraph::callFrontierFilterService()
 {
-  actionlib::SimpleActionClient<robosar_messages::FrontierFilterAction> frontier_filter_client_("frontier_filter_srv", false);
+  actionlib::SimpleActionClient<robosar_messages::FrontierFilterAction> frontier_filter_client_("frontier_filter_srv", true);
   frontier_filter_client_.waitForServer();
   robosar_messages::FrontierFilterGoal req;
   req.frontiers = frontiers_;
@@ -617,7 +618,7 @@ void TaskGraph::expandRRT(const ros::TimerEvent &)
   // if enough frontiers, call frontier_filter service
   if (frontiers_.size() > filter_threshold_)
   {
-    // callFrontierFilterService();
+    callFrontierFilterService();
     frontiers_.clear();
   }
 
