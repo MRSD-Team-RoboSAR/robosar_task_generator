@@ -1,6 +1,6 @@
 <launch>
     <arg name="occ_threshold" value="70"/>
-    <arg name="geofence" value="[-0.5, 12.0, -10.0, 2.0]"/>
+    <arg name="geofence" value="[-1.0, 12.0, -10.0, 2.0]"/>
 
     <node pkg="robosar_task_generator" type="robosar_task_graph_node" name="robosar_task_graph_node" output="screen">
         <param name="eta" value="0.5"/>

@@ -67,7 +67,6 @@ private:
 
     //bool isValidCoveragePoint(std::pair<float, float> x_new, float info_radius, int id);
     int gridValue(std::pair<float, float> &Xp);
-    TaskVertex *findNearestVertex(std::pair<float, float> &x_rand);
 
     // Coverage task generator
     void taskGraphUpdater();
