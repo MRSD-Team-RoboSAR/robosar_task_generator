@@ -73,13 +73,9 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
         p.z = 0.0;
         // calculate free space info gain heuristic
         std::pair<float,float> node_pos = {p.x, p.y};
-        ROS_INFO("coverage pos: (%f, %f)", node_pos.first, node_pos.second);
         TaskVertex* pose_node = findNearestPoseVertex(node_pos);
-        ROS_INFO("taskvertex pos: (%f, %f)", pose_node->pose_.position.x, pose_node->pose_.position.y);
         float dist = Norm(p.x, p.y, pose_node->pose_.position.x, pose_node->pose_.position.y);
-        ROS_INFO("dist: %f", dist);
         float info_gain_heur = std::max(std::min(dist/INFO_GAIN_DIST_THRESHOLD, 1.0), MIN_INFO_GAIN);
-        ROS_INFO("infogain: %f", info_gain_heur);
         res.points.push_back(p);
         res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
         res.info_gains.push_back(info_gain_heur);
