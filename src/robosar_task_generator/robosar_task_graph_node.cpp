@@ -6,6 +6,7 @@
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "robosar_task_graph_node");
+  // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
 
   //move_base::MoveBase move_base( buffer );
   

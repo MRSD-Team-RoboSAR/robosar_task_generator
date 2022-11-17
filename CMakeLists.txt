@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(robosar_task_generator)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++17)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -15,11 +15,14 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   geometry_msgs
   visualization_msgs
+  tf2
+  actionlib
+  actionlib_msgs
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(GTest REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -109,7 +112,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robosar_task_generator
-  CATKIN_DEPENDS robosar_messages
+  CATKIN_DEPENDS robosar_messages actionlib actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -121,10 +124,25 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  include/rrt_utils
   ${catkin_INCLUDE_DIRS}
   ${robosar_messages_INCLUDE_DIRS}
+  ${GTEST_INCLUDE_DIRS}
 )
 
+
+ ## Declare a C++ library
+ add_library(rrt_utils
+ src/${PROJECT_NAME}/rrt_utils/functions.cpp
+ src/${PROJECT_NAME}/rrt_utils/mtrand.cpp
+ )
+ 
+ ## Specify libraries to link a library or executable target against
+ target_link_libraries(rrt_utils
+ ${catkin_LIBRARIES}
+ )
+
+ 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
    src/${PROJECT_NAME}/task_graph.cpp
@@ -133,7 +151,9 @@ add_library(${PROJECT_NAME}
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
    ${catkin_LIBRARIES}
+   rrt_utils
  )
+
 
 
 ## Add cmake target dependencies of the library
@@ -172,7 +192,7 @@ target_link_libraries(robosar_task_graph_node
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/task_generator_node.py
+  scripts/robosar_task_generator/task_generator_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -207,6 +227,12 @@ catkin_install_python(PROGRAMS
 #############
 ## Testing ##
 #############
+
+catkin_add_gtest(simple_test test/simple_test.cpp)
+catkin_add_gtest(coverage_tasks_test test/coverage_tasks_test.cpp)
+
+target_link_libraries(simple_test ${GTEST_LIBRARIES}  ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(coverage_tasks_test ${GTEST_LIBRARIES}  ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_robosar_task_generator.cpp)
