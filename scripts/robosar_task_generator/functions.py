@@ -153,7 +153,7 @@ def Nearest2(V, x):
     return i
 
 def check_edge_collision(xnear, xnew, mapData):
-        rez = float(mapData.info.resolution) * 0.2
+        rez = float(mapData.info.resolution)
         stepz = int(np.ceil(Norm(xnew[0], xnew[1], xnear[0], xnear[1])) / rez)
         xi = xnear
         obs = 0
