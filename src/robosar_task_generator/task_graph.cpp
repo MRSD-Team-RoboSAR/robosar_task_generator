@@ -8,6 +8,8 @@
 #define TO_TASK_ID(vertex_id, node_id) (vertex_id * 10000 + node_id)
 #define TO_VERTEX_ID(task_id) (task_id / 10000)
 #define TO_NODE_ID(task_id) (task_id % 10000)
+#define MIN_INFO_GAIN 0.05
+#define INFO_GAIN_DIST_THRESHOLD 2.0
 
 TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {
@@ -69,8 +71,13 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
         p.x = node_ptr->get_x();
         p.y = node_ptr->get_y();
         p.z = 0.0;
+        float x_dist = node_ptr->get_rel_tf().getOrigin()[0];
+        float y_dist = node_ptr->get_rel_tf().getOrigin()[1];
+        float dist = pow((pow((x_dist), 2) + pow((y_dist), 2)), 0.5);
+        float info_gain_heur = std::max(std::min(dist/INFO_GAIN_DIST_THRESHOLD, 1.0), MIN_INFO_GAIN);
         res.points.push_back(p);
         res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
+        res.info_gains.push_back(info_gain_heur);
         node_ptr->is_allocated_ = true;
       }
     }
