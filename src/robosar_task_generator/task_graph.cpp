@@ -213,8 +213,8 @@ void TaskGraph::initMarkers()
   color_allocated_.a = 1.0;
 
   color_visited_.r = 255.0 / 255.0;
-  color_visited_.g = 0.0;
-  color_visited_.b = 255.0 / 255.0;
+  color_visited_.g = 100.0;
+  color_visited_.b = 0.0 / 255.0;
   color_visited_.a = 1.0;
 
   color_frontier_.r = 0.0 / 255.0;
