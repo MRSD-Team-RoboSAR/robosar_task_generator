@@ -18,7 +18,7 @@
 #define COV_PERCENT_COVERAGE_OVERLAP 0.75f        // TODO
 #define COV_MIN_DIST_BETWEEN_COVERAGE_POINTS 1.5f // TODO
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
-std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}};
+std::vector<std::vector<int>> bfs_prop_model = {{-1, 0}, {0, -1}, {0, 1}, {1, 0}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
 
 class RRT
 {
