@@ -1,6 +1,8 @@
 <launch>
     <arg name="occ_threshold" value="70"/>
+    <!--x_min, x_max, y_min, y_max-->
     <arg name="geofence" value="[-1.0, 12.0, -10.0, 2.0]"/>
+    <arg name="mc_geofence" value="[-1.0, 1.0, -10.0, -8.0]"/>
     <!-- <arg name="geofence" value="[2.5, 22.0, -1.0, 20.0]"/> -->
 
     <node pkg="robosar_task_generator" type="robosar_task_graph_node" name="robosar_task_graph_node" output="screen">
@@ -10,6 +12,7 @@
         <param name="map_topic" value="/robosar_navigation/costmap"/>
         <param name="occ_threshold" value="$(arg occ_threshold)"/>
         <rosparam param="geofence" subst_value="True">$(arg geofence)</rosparam>
+        <rosparam param="mc_geofence" subst_value="True">$(arg mc_geofence)</rosparam>
     </node>
 
     <node pkg="robosar_task_generator" type="frontier_filter.py" name="frontier_filter" output="screen">
@@ -17,8 +20,8 @@
         <param name="info_gain_threshold" value="0.3"/> 
         <param name="costmap_clearing_threshold" value="$(arg occ_threshold)"/>
         <param name="cluster_bandwidth" value="0.5"/> 
-        <!--x_min, x_max, y_min, y_max-->
         <rosparam param="geofence" subst_value="True">$(arg geofence)</rosparam>
+        <rosparam param="mc_geofence" subst_value="True">$(arg mc_geofence)</rosparam>
     </node>
 
 </launch>

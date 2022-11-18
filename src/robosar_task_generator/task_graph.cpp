@@ -52,6 +52,7 @@ void TaskGraph::initROSParams(void) {
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
   ros::param::param<int>(ns + "/occ_threshold", occ_threshold_, 70);
   ros::param::param<std::vector<float>>(ns + "/geofence", geofence_vec_, {0.5, 0.5});
+  ros::param::param<std::vector<float>>(ns + "/mc_geofence", mc_geofence_vec_, {0.5, 0.5});
 }
 
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
@@ -547,12 +548,10 @@ bool TaskGraph::isInsideGeofence(const std::pair<float, float> x_new) {
 
   if(x_new.first > geofence_vec_[0] && x_new.first < geofence_vec_[1] && x_new.second > geofence_vec_[2] && x_new.second < geofence_vec_[3])
   {
-    return true;
+    if (!(x_new.first > mc_geofence_vec_[0] && x_new.first < mc_geofence_vec_[1] && x_new.second > mc_geofence_vec_[2] && x_new.second < mc_geofence_vec_[3]))
+      return true;
   }
-  else
-  {
-    return false;
-  }
+  return false;
 }
 
 void TaskGraph::expandRRT(const ros::TimerEvent &)

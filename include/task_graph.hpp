@@ -18,7 +18,6 @@
 
 #include "robosar_messages/task_graph_getter.h"
 #include "robosar_messages/task_graph_setter.h"
-#include "robosar_messages/frontier_filter.h"
 #include "robosar_messages/rrt_connect.h"
 #include "functions.h"
 #include "mtrand.h"
@@ -100,6 +99,7 @@ private:
     std_msgs::ColorRGBA color_coverage_, color_allocated_, color_visited_, color_frontier_;
 
     std::vector<float> geofence_vec_;
+    std::vector<float> mc_geofence_vec_;
     std::map<int, int> id_to_index_;
     std::vector<TaskVertex> V_;
     std::vector<geometry_msgs::Point> frontiers_;
