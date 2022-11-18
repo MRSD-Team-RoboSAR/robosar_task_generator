@@ -153,7 +153,7 @@ class FrontierFilter:
             info_gain = informationGain(
                 self.mapData, [f[0], f[1]], self.info_radius, self.occ_threshold
             )
-            if info_gain > self.info_threshold and self.try_rrt_connect_client(f):
+            if info_gain > self.info_threshold: #  and self.try_rrt_connect_client(f)
                 possible_frontiers.append(f)
 
         # Clustering frontier points
@@ -195,7 +195,7 @@ class FrontierFilter:
             published_point.x = cen[0]
             published_point.y = cen[1]
             arraypoints.points.append(published_point)
-            arraypoints.infoGain.append(infoGain_filtered[i])
+            arraypoints.infoGain.append(min(infoGain_filtered[i]/(self.info_threshold/2), 1.0))
         self.frontier_array_pub.publish(arraypoints)
         pp = []
         for q in range(0, len(centroids_filtered)):
