@@ -548,6 +548,8 @@ bool TaskGraph::isInsideGeofence(const std::pair<float, float> x_new) {
 
   if(x_new.first > geofence_vec_[0] && x_new.first < geofence_vec_[1] && x_new.second > geofence_vec_[2] && x_new.second < geofence_vec_[3])
   {
+    if (mc_geofence_vec_.size() < 4)
+      return true;
     if (!(x_new.first > mc_geofence_vec_[0] && x_new.first < mc_geofence_vec_[1] && x_new.second > mc_geofence_vec_[2] && x_new.second < mc_geofence_vec_[3]))
       return true;
   }
