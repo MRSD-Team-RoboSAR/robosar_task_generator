@@ -62,7 +62,7 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
   {
     for (auto& cov_node_id : v.rrt_.coverage_nodes_) {
       auto node_ptr = v.rrt_.get_node(cov_node_id);
-      if (!node_ptr->is_visited_)
+      if (!node_ptr->is_visited_ && !node_ptr->is_disabled())
       {
         res.task_ids.push_back(TO_TASK_ID(v.id_,node_ptr->get_id()));
         geometry_msgs::Point p;
