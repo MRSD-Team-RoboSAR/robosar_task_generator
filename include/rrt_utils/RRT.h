@@ -254,7 +254,7 @@ public:
         // Mark all nodes as coverage nodes unless disabled
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
         {
-            if(!nodes_->is_disabled()) {
+            if(!j->second->is_disabled()) {
                 j->second->is_coverage_node_ = true;
             }
         }
