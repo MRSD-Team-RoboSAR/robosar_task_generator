@@ -374,7 +374,7 @@ float TaskGraph::informationGain(std::pair<float, float> &x)
     }
 
     // Check if obstacle
-    if (gridValue(current_position) > 90)
+    if (gridValue(current_position) > 90 || gridValue(current_position) == -1)
     {
       end_of_bfs = true;
     }
