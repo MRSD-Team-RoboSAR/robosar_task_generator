@@ -251,7 +251,7 @@ public:
     void update_coverage_nodes(void) {
 
         coverage_nodes_.clear();
-        // Mark all nodes as coverage nodes
+        // Mark all nodes as coverage nodes unless disabled
         for (auto j = nodes_.begin(); j != nodes_.end(); j++)
         {
             j->second->is_coverage_node_ = true;
@@ -264,8 +264,8 @@ public:
            if(j->second->is_coverage_node_) {
                 // Check if valid coverage point
                 std::pair<float, float> node_pos = std::make_pair(j->second->get_x(), j->second->get_y());
-                if (j->second->is_allocated_ || j->second->is_visited_ ||   
-                        is_valid_coverage_node(node_pos, j->second->get_info_gain_radius(), j->second->get_id())) 
+                if (j->second->is_allocated_ || j->second->is_visited_ || (!j->second->is_disabled() &&
+                        is_valid_coverage_node(node_pos, j->second->get_info_gain_radius(), j->second->get_id()))) 
                     {
                         j->second->is_coverage_node_ = true;
                         coverage_nodes_.push_back(j->second->get_id());
