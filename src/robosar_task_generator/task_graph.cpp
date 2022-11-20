@@ -9,7 +9,7 @@
 #define TO_VERTEX_ID(task_id) (task_id / 10000)
 #define TO_NODE_ID(task_id) (task_id % 10000)
 #define MIN_INFO_GAIN 0.05
-#define INFO_GAIN_DIST_THRESHOLD 2.5
+#define INFO_GAIN_DIST_THRESHOLD 2.0
 
 TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {

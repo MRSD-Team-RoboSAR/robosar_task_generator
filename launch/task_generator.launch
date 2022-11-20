@@ -3,8 +3,8 @@
     <!--x_min, x_max, y_min, y_max-->
     <!-- <arg name="geofence" value="[-1.0, 12.0, -10.0, 2.0]"/> -->
     <arg name="mc_geofence" value="[-10.0, -8.0, -1.5, 1.0]"/>
-    <arg name="geofence" value="[-10.0, 2.0, -12.0, 1.0]"/>
-    <!-- <arg name="geofence" value="[2.5, 19.0, 0.0, 20.0]"/> -->
+    <!-- <arg name="geofence" value="[-10.0, 2.0, -12.0, 1.0]"/> -->
+    <arg name="geofence" value="[2.5, 17.5, 3.0, 19.0]"/>
 
     <node pkg="robosar_task_generator" type="robosar_task_graph_node" name="robosar_task_graph_node" output="screen">
         <param name="eta" value="0.5"/>
@@ -13,7 +13,7 @@
         <param name="map_topic" value="/robosar_navigation/costmap"/>
         <param name="occ_threshold" value="$(arg occ_threshold)"/>
         <rosparam param="geofence" subst_value="True">$(arg geofence)</rosparam>
-        <rosparam param="mc_geofence" subst_value="True">$(arg mc_geofence)</rosparam>
+        <!-- <rosparam param="mc_geofence" subst_value="True">$(arg mc_geofence)</rosparam> -->
     </node>
 
     <node pkg="robosar_task_generator" type="frontier_filter.py" name="frontier_filter" output="screen">
