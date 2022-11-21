@@ -13,7 +13,7 @@
         <param name="map_topic" value="/robosar_navigation/costmap"/>
         <param name="occ_threshold" value="$(arg occ_threshold)"/>
         <rosparam param="geofence" subst_value="True">$(arg geofence)</rosparam>
-        <rosparam param="mc_geofence" subst_value="True">$(arg mc_geofence)</rosparam>
+        <!-- <rosparam param="mc_geofence" subst_value="True">$(arg mc_geofence)</rosparam> -->
     </node>
 
     <node pkg="robosar_task_generator" type="frontier_filter.py" name="frontier_filter" output="screen">
