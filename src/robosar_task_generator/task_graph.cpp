@@ -8,6 +8,8 @@
 #define TO_TASK_ID(vertex_id, node_id) (vertex_id * 10000 + node_id)
 #define TO_VERTEX_ID(task_id) (task_id / 10000)
 #define TO_NODE_ID(task_id) (task_id % 10000)
+#define MIN_INFO_GAIN 0.05
+#define INFO_GAIN_DIST_THRESHOLD 2.0
 
 TaskGraph::TaskGraph() : nh_(""), new_data_rcvd_(false), frame_id_("map"), prune_counter_(0)
 {
@@ -50,6 +52,7 @@ void TaskGraph::initROSParams(void) {
   ros::param::param<std::string>(ns + "/map_topic", map_topic_, "/map");
   ros::param::param<int>(ns + "/occ_threshold", occ_threshold_, 70);
   ros::param::param<std::vector<float>>(ns + "/geofence", geofence_vec_, {0.5, 0.5});
+  ros::param::param<std::vector<float>>(ns + "/mc_geofence", mc_geofence_vec_, {0.5, 0.5});
 }
 
 bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Request &req,
@@ -69,8 +72,14 @@ bool TaskGraph::taskGraphServiceCallback(robosar_messages::task_graph_getter::Re
         p.x = node_ptr->get_x();
         p.y = node_ptr->get_y();
         p.z = 0.0;
+        // calculate free space info gain heuristic
+        std::pair<float,float> node_pos = {p.x, p.y};
+        TaskVertex* pose_node = findNearestPoseVertex(node_pos);
+        float dist = Norm(p.x, p.y, pose_node->pose_.position.x, pose_node->pose_.position.y);
+        float info_gain_heur = std::max(std::min(dist/INFO_GAIN_DIST_THRESHOLD, 1.0), MIN_INFO_GAIN);
         res.points.push_back(p);
         res.task_types.push_back(robosar_messages::task_graph_getter::Response::COVERAGE);
+        res.info_gains.push_back(info_gain_heur);
         node_ptr->is_allocated_ = true;
       }
     }
@@ -205,8 +214,8 @@ void TaskGraph::initMarkers()
   color_allocated_.a = 1.0;
 
   color_visited_.r = 255.0 / 255.0;
-  color_visited_.g = 0.0;
-  color_visited_.b = 255.0 / 255.0;
+  color_visited_.g = 100.0;
+  color_visited_.b = 0.0 / 255.0;
   color_visited_.a = 1.0;
 
   color_frontier_.r = 0.0 / 255.0;
@@ -539,12 +548,12 @@ bool TaskGraph::isInsideGeofence(const std::pair<float, float> x_new) {
 
   if(x_new.first > geofence_vec_[0] && x_new.first < geofence_vec_[1] && x_new.second > geofence_vec_[2] && x_new.second < geofence_vec_[3])
   {
-    return true;
+    if (mc_geofence_vec_.size() < 4)
+      return true;
+    if (!(x_new.first > mc_geofence_vec_[0] && x_new.first < mc_geofence_vec_[1] && x_new.second > mc_geofence_vec_[2] && x_new.second < mc_geofence_vec_[3]))
+      return true;
   }
-  else
-  {
-    return false;
-  }
+  return false;
 }
 
 void TaskGraph::expandRRT(const ros::TimerEvent &)
