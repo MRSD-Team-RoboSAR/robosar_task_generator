@@ -26,6 +26,7 @@ class FrontierFilter:
         ns = rospy.get_name()
         self.occ_threshold = rospy.get_param("~costmap_clearing_threshold", 70)
         self.info_threshold = rospy.get_param("~info_gain_threshold", 0.2)
+        self.pose_graph_proximity_threshold = rospy.get_param("~pose_graph_proximity_threshold", 0.3)
         self.cluster_bandwidth = rospy.get_param("~cluster_bandwidth", 1.0)
         # this can be smaller than the laser scanner range, >> smaller >>less computation time>> too small is not good, info gain won't be accurate
         self.info_radius = rospy.get_param("~info_radius", 0.5)
@@ -56,6 +57,7 @@ class FrontierFilter:
         frontiers = np.array(frontiers)
 
         self.mapData = req.map_data
+        self.pose_graph = req.pose_graph
 
         self.filter(frontiers)
         self.filter_as.set_succeeded(FrontierFilterActionResult())
@@ -185,6 +187,20 @@ class FrontierFilter:
                 infoGain_filtered.append(infoGain)
         self.filtered_frontiers = copy(centroids_filtered)
 
+        # Filter out frontiers too close to the pose graph
+        final_frontiers = []
+        for f in centroids_filtered:
+            # get min distance to pose graph
+            min_dist = 1000000
+            for node in self.pose_graph:
+                dist = functions.Norm(f[0], f[1], node.position.x, node.position.y)
+                if dist < min_dist:
+                    min_dist = dist
+            # filter out frontiers too close to the pose graph
+            if min_dist > self.pose_graph_proximity_threshold:
+                final_frontiers.append(f)
+        centroids_filtered = final_frontiers
+        
         # publishing
         arraypoints = PointArray()
         arraypoints.points = []
