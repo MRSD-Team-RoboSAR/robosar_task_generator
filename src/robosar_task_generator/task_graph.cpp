@@ -133,6 +133,12 @@ void TaskGraph::callFrontierFilterService()
   robosar_messages::FrontierFilterGoal req;
   req.frontiers = frontiers_;
   req.map_data = mapData_;
+  // Go through all the vertices and add poses to the request
+  for (auto &v : V_)
+  {
+    req.pose_graph.push_back(v.pose_);
+  }
+
   frontier_filter_client_.sendGoal(req);
 }
 
