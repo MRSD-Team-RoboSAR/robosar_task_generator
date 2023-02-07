@@ -195,7 +195,7 @@ class FrontierFilter:
             published_point.x = cen[0]
             published_point.y = cen[1]
             arraypoints.points.append(published_point)
-            arraypoints.infoGain.append(min(infoGain_filtered[i]/(self.info_threshold/2), 1.0))
+            arraypoints.infoGain.append(min(infoGain_filtered[i]/self.info_threshold, 1.0))
         self.frontier_array_pub.publish(arraypoints)
         pp = []
         for q in range(0, len(centroids_filtered)):
