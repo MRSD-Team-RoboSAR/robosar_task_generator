@@ -14,7 +14,7 @@
 
 // Coverage planner parameters
 #define EPSILON 10e-5f
-#define COV_MIN_INFO_GAIN_RADIUS_M 0.5
+#define COV_MIN_INFO_GAIN_RADIUS_M 0.3
 #define COV_PERCENT_COVERAGE_OVERLAP 0.75f        // TODO
 #define COV_MIN_DIST_BETWEEN_COVERAGE_POINTS 1.5f // TODO
 #define COV_MAX_INFO_GAIN_RADIUS_M 5.0            // Should reflect sensor model
